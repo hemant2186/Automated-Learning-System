@@ -2,20 +2,64 @@ const express = require('express');
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { TOPICS } = require('../services/analysis');
 
 const router = express.Router();
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeActivityPayload(payload) {
+  const topic = typeof payload.topic === 'string' ? payload.topic.trim() : '';
+
+  if (!topic) {
+    return { error: 'Topic is required.' };
+  }
+
+  if (!TOPICS.includes(topic)) {
+    return { error: 'Topic must be one of the supported learning path topics.' };
+  }
+
+  const quizScore = clamp(toNumber(payload.quizScore), 0, 100);
+  const codingScore = clamp(toNumber(payload.codingScore), 0, 100);
+  const timeSpent = clamp(toNumber(payload.timeSpent), 0, 480);
+  const attempts = Math.round(clamp(toNumber(payload.attempts, 1), 1, 25));
+  const feedback = typeof payload.feedback === 'string' ? payload.feedback.trim().slice(0, 1000) : '';
+
+  return {
+    topic,
+    quizScore,
+    codingScore,
+    timeSpent,
+    attempts,
+    completed: Boolean(payload.completed),
+    feedback,
+  };
+}
 
 // Ingest activity
 router.post('/ingest', auth, async (req, res) => {
   try {
-    const pointsEarned = (req.body.quizScore || 0) + (req.body.codingScore || 0);
-    const activity = new Activity({ ...req.body, user: req.user._id, pointsEarned });
+    const payload = normalizeActivityPayload(req.body);
+    if (payload.error) {
+      return res.status(400).json({ error: payload.error });
+    }
+
+    const completionBonus = payload.completed ? 10 : 0;
+    const pointsEarned = Math.round((payload.quizScore + payload.codingScore) / 2) + completionBonus;
+    const activity = new Activity({ ...payload, user: req.user._id, pointsEarned });
     await activity.save();
-    // Update user points
+
     await User.findByIdAndUpdate(req.user._id, { $inc: { points: pointsEarned } });
     res.status(201).send(activity);
   } catch (e) {
-    res.status(400).send(e);
+    res.status(400).json({ error: e.message || 'Could not save activity.' });
   }
 });
 

@@ -121,6 +121,62 @@ async function main() {
     }
   });
 
+  await run('activity ingestion validates topics and normalizes scoring inputs', async () => {
+    const userId = '665000000000000000000001';
+    const existingUser = makeUser({ _id: userId });
+
+    const restoreFindById = replaceMethod(User, 'findById', async () => existingUser);
+    const restoreFindByIdAndUpdate = replaceMethod(User, 'findByIdAndUpdate', async () => existingUser);
+    const originalSave = Activity.prototype.save;
+    Activity.prototype.save = async function saveActivity() {
+      return this;
+    };
+
+    try {
+      const token = jwt.sign({ id: userId, type: 'access' }, process.env.JWT_SECRET, {
+        expiresIn: '1h',
+      });
+
+      const invalidResponse = await request(app)
+        .post('/api/activity/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          topic: 'Unsupported Topic',
+          quizScore: 900,
+          codingScore: -20,
+        });
+
+      assert.equal(invalidResponse.status, 400);
+      assert.match(invalidResponse.body.error, /supported learning path/);
+
+      const response = await request(app)
+        .post('/api/activity/ingest')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          topic: 'Loops',
+          quizScore: 120,
+          codingScore: -10,
+          timeSpent: 999,
+          attempts: 0,
+          completed: true,
+          feedback: '  Need more loop tracing.  ',
+        });
+
+      assert.equal(response.status, 201);
+      assert.equal(response.body.topic, 'Loops');
+      assert.equal(response.body.quizScore, 100);
+      assert.equal(response.body.codingScore, 0);
+      assert.equal(response.body.timeSpent, 480);
+      assert.equal(response.body.attempts, 1);
+      assert.equal(response.body.feedback, 'Need more loop tracing.');
+      assert.equal(response.body.pointsEarned, 60);
+    } finally {
+      restoreFindById();
+      restoreFindByIdAndUpdate();
+      Activity.prototype.save = originalSave;
+    }
+  });
+
   await run('getRecommendations returns starter guidance for learners with no activity', async () => {
     const recommendations = getRecommendations({
       activityCount: 0,
@@ -145,6 +201,26 @@ async function main() {
     assert.equal(recommendations[0].topic, 'Loops');
     assert.equal(recommendations[1].topic, 'Functions');
     assert.equal(recommendations.length, 2);
+    assert.ok(recommendations[0].successCriteria);
+    assert.ok(recommendations[0].estimatedMinutes >= 30);
+  });
+
+  await run('getRecommendations follows the learner review queue when available', async () => {
+    const recommendations = getRecommendations({
+      activityCount: 4,
+      reviewQueue: [
+        { topic: 'Functions', priority: 'high' },
+        { topic: 'Loops', priority: 'medium' },
+      ],
+      topicBreakdown: [
+        { topic: 'Loops', mastery: 62, status: 'developing', averageAttempts: 2 },
+        { topic: 'Functions', mastery: 39, status: 'weak', averageAttempts: 4 },
+        { topic: 'Arrays', mastery: 30, status: 'weak', averageAttempts: 1 },
+      ],
+    });
+
+    assert.equal(recommendations[0].topic, 'Functions');
+    assert.equal(recommendations[1].topic, 'Loops');
   });
 
   if (!process.exitCode) {

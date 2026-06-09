@@ -137,6 +137,8 @@ export default function Dashboard() {
   const progressEntries = Object.entries(progress);
   const topicBreakdown = analysis?.topicBreakdown || [];
   const timelineItems = timeline.slice(0, 6);
+  const reviewQueue = analysis?.reviewQueue || path?.review_queue || [];
+  const riskFactors = analysis?.riskFactors || path?.risk_factors || [];
   const chartData = topicBreakdown
     .slice()
     .reverse()
@@ -211,8 +213,8 @@ export default function Dashboard() {
             </div>
             <div className="col-md-6 col-xl-3">
               <div className="metric-tile p-4 h-100">
-                <div className="small muted-copy">Leaderboard points</div>
-                <div className="big-stat">{user?.points || 0}</div>
+                <div className="small muted-copy">Engagement score</div>
+                <div className="big-stat">{analysis?.engagementScore || path?.engagement_score || 0}</div>
               </div>
             </div>
           </div>
@@ -243,6 +245,16 @@ export default function Dashboard() {
                         <div className="mt-2">
                           <div className="small muted-copy">Resource idea</div>
                           <div>{item.resource}</div>
+                        </div>
+                        <div className="row g-2 mt-2">
+                          <div className="col-md-8">
+                            <div className="small muted-copy">Success criteria</div>
+                            <div>{item.successCriteria}</div>
+                          </div>
+                          <div className="col-md-4">
+                            <div className="small muted-copy">Timebox</div>
+                            <div>{item.estimatedMinutes || 30} minutes</div>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -291,6 +303,73 @@ export default function Dashboard() {
                         Once you log practice sessions, this panel will reveal your strongest and weakest topics.
                       </div>
                     </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="row g-4 mb-4">
+            <div className="col-lg-7">
+              <div className="section-card p-4 h-100">
+                <div className="eyebrow text-primary mb-2">Review queue</div>
+                <h3 className="fw-bold mb-3">Topics due for reinforcement</h3>
+                <div className="d-grid gap-3">
+                  {reviewQueue.length ? (
+                    reviewQueue.map((item) => (
+                      <div className="metric-tile p-3" key={item.topic}>
+                        <div className="d-flex justify-content-between gap-3 align-items-start">
+                          <div>
+                            <div className="fw-bold">{item.topic}</div>
+                            <div className="small muted-copy">{item.reason}</div>
+                          </div>
+                          <span className="soft-chip text-capitalize">{item.priority}</span>
+                        </div>
+                        <div className="small muted-copy mt-2">
+                          {item.mastery}% mastery
+                          {item.daysSincePractice !== null && item.daysSincePractice !== undefined
+                            ? ` - practiced ${item.daysSincePractice} day${item.daysSincePractice === 1 ? "" : "s"} ago`
+                            : ""}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="metric-tile p-4">
+                      <div className="fw-semibold mb-2">No urgent review due</div>
+                      <div className="muted-copy">
+                        Keep logging sessions and the system will queue stale or weak topics automatically.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="col-lg-5">
+              <div className="section-card p-4 h-100">
+                <div className="eyebrow text-primary mb-2">Learner health</div>
+                <h3 className="fw-bold mb-3">Signals an instructor would act on</h3>
+                <div className="metric-tile p-3 mb-3">
+                  <div className="d-flex justify-content-between gap-3">
+                    <span className="muted-copy">Risk level</span>
+                    <span className="soft-chip text-capitalize">{analysis?.riskLevel || path?.risk_level || "medium"}</span>
+                  </div>
+                  <div className="d-flex justify-content-between gap-3 mt-2">
+                    <span className="muted-copy">Coverage</span>
+                    <strong>{analysis?.coveragePercent || path?.coverage_percent || 0}%</strong>
+                  </div>
+                  <div className="d-flex justify-content-between gap-3 mt-2">
+                    <span className="muted-copy">Trend</span>
+                    <strong className="text-capitalize">{analysis?.trend || path?.trend || "no-data"}</strong>
+                  </div>
+                </div>
+                <div className="d-grid gap-2">
+                  {riskFactors.length ? (
+                    riskFactors.map((factor) => (
+                      <div className="small muted-copy border-bottom pb-2" key={factor}>{factor}</div>
+                    ))
+                  ) : (
+                    <div className="small muted-copy">No active risk factors found in the latest analysis.</div>
                   )}
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import DashboardShell from "../../components/DashboardShell";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import { useToast } from "../../components/ToastProvider";
-import { getInstructorAnalytics } from "../../lib/api";
+import { getInstructorAnalytics, getInstructorExportUrl } from "../../lib/api";
 import { getStoredUser } from "../../lib/auth";
 
 export default function InstructorPage() {
@@ -32,7 +32,7 @@ export default function InstructorPage() {
   const exportCsv = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000"}/api/instructor/analytics/export.csv`,
+        getInstructorExportUrl(),
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`
@@ -105,8 +105,29 @@ export default function InstructorPage() {
             </div>
             <div className="col-md-4">
               <div className="metric-tile p-4 h-100">
-                <div className="small muted-copy">Platform Mastery</div>
+                <div className="small muted-copy">Platform mastery</div>
                 <div className="big-stat">{analytics?.summary?.overall_mastery || 0}%</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="row g-4 mb-4">
+            <div className="col-md-4">
+              <div className="metric-tile p-4 h-100">
+                <div className="small muted-copy">High-risk learners</div>
+                <div className="big-stat">{analytics?.summary?.high_risk_count || 0}</div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="metric-tile p-4 h-100">
+                <div className="small muted-copy">Medium-risk learners</div>
+                <div className="big-stat">{analytics?.summary?.medium_risk_count || 0}</div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="metric-tile p-4 h-100">
+                <div className="small muted-copy">Average engagement</div>
+                <div className="big-stat">{analytics?.summary?.average_engagement || 0}</div>
               </div>
             </div>
           </div>
@@ -129,18 +150,24 @@ export default function InstructorPage() {
 
             <div className="col-lg-6">
               <div className="section-card p-4 h-100">
-                <div className="eyebrow text-primary mb-2">At-Risk Learners</div>
-                <h3 className="fw-bold mb-3">Who may need intervention</h3>
+                <div className="eyebrow text-primary mb-2">Intervention queue</div>
+                <h3 className="fw-bold mb-3">Who needs action next</h3>
                 <div className="d-grid gap-3">
-                  {(analytics?.at_risk_learners || []).map((learner) => (
+                  {(analytics?.intervention_queue || analytics?.at_risk_learners || []).map((learner) => (
                     <div className="metric-tile p-3" key={learner.user_id}>
                       <div className="d-flex justify-content-between align-items-start gap-3">
                         <div>
                           <div className="fw-bold">{learner.name || learner.user_id}</div>
-                          <div className="small muted-copy">Mastery: {learner.overall_mastery}%</div>
+                          <div className="small muted-copy">{learner.next_recommended_topic}</div>
                         </div>
                         <span className="soft-chip">{learner.risk_level}</span>
                       </div>
+                      {learner.suggested_action ? (
+                        <div className="small muted-copy mt-2">{learner.suggested_action}</div>
+                      ) : null}
+                      {(learner.risk_factors || []).slice(0, 2).map((factor) => (
+                        <div className="small text-muted mt-2" key={factor}>{factor}</div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -160,6 +187,8 @@ export default function InstructorPage() {
                         <th>Mastery</th>
                         <th>Weak topic</th>
                         <th>Next topic</th>
+                        <th>Trend</th>
+                        <th>Engagement</th>
                         <th>Risk</th>
                       </tr>
                     </thead>
@@ -174,6 +203,8 @@ export default function InstructorPage() {
                           <td>{learner.overall_mastery}%</td>
                           <td>{learner.weak_topic}</td>
                           <td>{learner.next_recommended_topic}</td>
+                          <td className="text-capitalize">{learner.trend}</td>
+                          <td>{learner.engagement_score}</td>
                           <td>
                             <span className="soft-chip text-capitalize">{learner.risk_level}</span>
                           </td>

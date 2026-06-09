@@ -22,8 +22,6 @@ async function buildInstructorAnalytics() {
     users.map(async (user) => {
       const analysis = await analyzeUser(user._id);
       const weakestTopic = analysis.topicBreakdown[0];
-      const riskLevel =
-        analysis.overallMastery < 40 ? 'high' : analysis.overallMastery < 60 ? 'medium' : 'low';
 
       return {
         user_id: user._id.toString(),
@@ -35,7 +33,12 @@ async function buildInstructorAnalytics() {
         weak_topic: weakestTopic?.topic || 'No data yet',
         next_recommended_topic: analysis.nextRecommendedTopic,
         readiness_label: analysis.readinessLabel,
-        risk_level: riskLevel,
+        risk_level: analysis.riskLevel,
+        risk_factors: analysis.riskFactors,
+        trend: analysis.trend,
+        engagement_score: analysis.engagementScore,
+        coverage_percent: analysis.coveragePercent,
+        review_queue: analysis.reviewQueue,
         last_activity: analysis.lastActivityAt,
       };
     })
@@ -69,8 +72,32 @@ async function buildInstructorAnalytics() {
       student_count: learnerRows.length,
       activity_count: activityCount,
       overall_mastery: overallMastery,
+      high_risk_count: learnerRows.filter((row) => row.risk_level === 'high').length,
+      medium_risk_count: learnerRows.filter((row) => row.risk_level === 'medium').length,
+      average_engagement: learnerRows.length
+        ? Math.round(learnerRows.reduce((sum, row) => sum + row.engagement_score, 0) / learnerRows.length)
+        : 0,
     },
     top_weak_topics: topWeakTopics,
+    intervention_queue: learnerRows
+      .filter((row) => row.risk_level !== 'low')
+      .sort((left, right) => {
+        const riskOrder = { high: 0, medium: 1, low: 2 };
+        return riskOrder[left.risk_level] - riskOrder[right.risk_level] || left.overall_mastery - right.overall_mastery;
+      })
+      .slice(0, 8)
+      .map((row) => ({
+        user_id: row.user_id,
+        name: row.name,
+        email: row.email,
+        risk_level: row.risk_level,
+        next_recommended_topic: row.next_recommended_topic,
+        risk_factors: row.risk_factors,
+        suggested_action:
+          row.risk_level === 'high'
+            ? 'Schedule a 1:1 remediation check-in and assign one focused practice pack.'
+            : 'Send a targeted nudge with a short review task and check progress after the next session.',
+      })),
     at_risk_learners: learnerRows
       .filter((row) => row.risk_level !== 'low')
       .sort((left, right) => left.overall_mastery - right.overall_mastery)

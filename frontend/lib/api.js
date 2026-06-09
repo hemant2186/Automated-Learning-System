@@ -88,4 +88,7 @@ export const logActivity = (payload) =>
 export const getInstructorAnalytics = () =>
   API.get("/api/instructor/analytics");
 
+export const getInstructorExportUrl = () =>
+  `${API_BASE_URL}/api/instructor/analytics/export.csv`;
+
 export default API;

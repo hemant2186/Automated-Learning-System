@@ -26,6 +26,12 @@ router.get('/path', auth, async (req, res) => {
       readiness_label: analysis.readinessLabel,
       overall_mastery: analysis.overallMastery,
       weak_topics: analysis.weakTopics || [],
+      risk_level: analysis.riskLevel,
+      risk_factors: analysis.riskFactors || [],
+      review_queue: analysis.reviewQueue || [],
+      coverage_percent: analysis.coveragePercent,
+      engagement_score: analysis.engagementScore,
+      trend: analysis.trend,
       recommendations: recommendations || []
     });
   } catch (e) {
