@@ -8,6 +8,14 @@ const authRoutes = require('./routes/auth');
 const activityRoutes = require('./routes/activity');
 const recommendationRoutes = require('./routes/recommendation');
 const instructorRoutes = require('./routes/instructor');
+const catalogRoutes = require('./routes/catalog');
+const pathsRoutes = require('./routes/paths');
+const lessonsRoutes = require('./routes/lessons');
+const quizzesRoutes = require('./routes/quizzes');
+const progressRoutes = require('./routes/progress');
+const resourcesRoutes = require('./routes/resources');
+const onboardingRoutes = require('./routes/onboarding');
+const adminRoutes = require('./routes/admin');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 const PORT = process.env.PORT || 5000;
@@ -26,6 +34,14 @@ function createApp() {
   app.use('/api/activity', activityRoutes);
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/instructor', instructorRoutes);
+  app.use('/api/catalog', catalogRoutes);
+  app.use('/api/paths', pathsRoutes);
+  app.use('/api/lessons', lessonsRoutes);
+  app.use('/api/quizzes', quizzesRoutes);
+  app.use('/api/progress', progressRoutes);
+  app.use('/api/resources', resourcesRoutes);
+  app.use('/api/onboarding', onboardingRoutes);
+  app.use('/api/admin', adminRoutes);
 
   app.get('/', (req, res) => {
     res.send('API Running');

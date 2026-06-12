@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "kill-port 5000 && nodemon app.js",
-    "test": "node test/run-tests.js"
+    "test": "node test/run-tests.js",
+    "seed:content": "node scripts/seedContent.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
