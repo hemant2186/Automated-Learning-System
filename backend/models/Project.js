@@ -13,7 +13,8 @@ const projectSchema = new mongoose.Schema(
     hints: [{ type: String, trim: true }],
     estimatedHours: { type: Number, min: 1, max: 120, default: 4 },
     order: { type: Number, min: 1, default: 1 },
-    // Legacy topic bridge for activity tracking and recommendations.
+    // Public curriculum metadata. Intentionally exposed for curriculum organization
+    // and compatibility with existing recommendation and activity systems.
     topic: { type: String, trim: true, default: '' },
     portfolioReady: { type: Boolean, default: false },
     status: { type: String, enum: PROJECT_STATUSES, default: 'published' },

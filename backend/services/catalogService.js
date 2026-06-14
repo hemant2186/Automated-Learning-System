@@ -1,41 +1,16 @@
 const LearningPath = require('../models/LearningPath');
 const { PATH_CATEGORIES, DIFFICULTY_LEVELS } = require('../models/constants/contentEnums');
-
-const CATALOG_FIELDS = [
-  'title',
-  'slug',
-  'description',
-  'category',
-  'difficulty',
-  'estimatedHours',
-  'lessonCount',
-  'quizCount',
-  'projectCount',
-  'tags',
-  'icon',
-  'order',
-].join(' ');
+const { PATH_SUMMARY_FIELDS, toPathSummary } = require('./pathService');
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// The catalog item shape intentionally reuses the shared path summary DTO
+// produced by pathService.toPathSummary(). This ensures /api/catalog and
+// /api/paths remain aligned and minimizes API contract drift.
 function toCatalogItem(path) {
-  return {
-    id: path._id.toString(),
-    title: path.title,
-    slug: path.slug,
-    description: path.description,
-    category: path.category,
-    difficulty: path.difficulty,
-    estimatedHours: path.estimatedHours,
-    lessonCount: path.lessonCount,
-    quizCount: path.quizCount,
-    projectCount: path.projectCount,
-    tags: path.tags || [],
-    icon: path.icon,
-    order: path.order,
-  };
+  return toPathSummary(path);
 }
 
 function buildCatalogFilter({ category, difficulty, search }) {
@@ -115,7 +90,7 @@ async function getCatalog(query = {}) {
   });
 
   const paths = await LearningPath.find(filter)
-    .select(CATALOG_FIELDS)
+    .select(PATH_SUMMARY_FIELDS)
     .sort(buildCatalogSort(sort))
     .lean();
 

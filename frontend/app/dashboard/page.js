@@ -23,6 +23,7 @@ import {
   getTimeline,
   logActivity,
 } from "../../lib/api";
+import { fetchPersonalization } from "../../services/personalizationService";
 import { getStoredUser } from "../../lib/auth";
 
 const TOPIC_OPTIONS = [
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [timeline, setTimeline] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [status, setStatus] = useState("Loading your learner workspace...");
+  const [personalization, setPersonalization] = useState(null);
   const [saving, setSaving] = useState(false);
   const [activityForm, setActivityForm] = useState({
     topic: "Computer Basics",
@@ -71,10 +73,19 @@ export default function Dashboard() {
         getCurrentUser(),
         getRecommendations(),
         getAnalysis(),
-        getProgress(),
         getTimeline(),
         getLeaderboard(),
       ]);
+
+      // Load personalization separately and non-blocking
+      (async () => {
+        try {
+          const p = await fetchPersonalization();
+          if (p) setPersonalization(p);
+        } catch (e) {
+          // ignore personalization errors to keep dashboard resilient
+        }
+      })();
 
       setUser(userResponse.data);
       setPath(recommendationsResponse.data);
@@ -92,6 +103,7 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboard().catch(() => {});
   }, []);
+
 
   const updateActivity = (event) => {
     const { name, value, type, checked } = event.target;

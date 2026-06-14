@@ -8,6 +8,7 @@ const { createApp } = require('../app');
 const { getRecommendations } = require('../services/recommender');
 const User = require('../models/User');
 const Activity = require('../models/Activity');
+const { registerPhase2ContractTests } = require('./phase2-contract-tests');
 
 function makeUser(overrides = {}) {
   return {
@@ -221,6 +222,12 @@ async function main() {
 
     assert.equal(recommendations[0].topic, 'Functions');
     assert.equal(recommendations[1].topic, 'Loops');
+  });
+
+  await registerPhase2ContractTests({
+    app,
+    run,
+    replaceMethod,
   });
 
   if (!process.exitCode) {

@@ -16,6 +16,7 @@ const progressRoutes = require('./routes/progress');
 const resourcesRoutes = require('./routes/resources');
 const onboardingRoutes = require('./routes/onboarding');
 const adminRoutes = require('./routes/admin');
+const personalizationRoutes = require('./routes/personalization');
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 const PORT = process.env.PORT || 5000;
@@ -42,6 +43,7 @@ function createApp() {
   app.use('/api/resources', resourcesRoutes);
   app.use('/api/onboarding', onboardingRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/personalization', personalizationRoutes);
 
   app.get('/', (req, res) => {
     res.send('API Running');

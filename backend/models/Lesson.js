@@ -33,7 +33,8 @@ const lessonSchema = new mongoose.Schema(
     exampleCode: { type: exampleCodeSchema, default: () => ({}) },
     practice: { type: practiceSchema, default: () => ({}) },
     durationMinutes: { type: Number, min: 1, max: 240, default: 10 },
-    // Legacy topic string used by Activity ingest and recommender.js.
+    // Public curriculum metadata. Intentionally exposed for curriculum organization
+    // and compatibility with existing recommendation and activity systems.
     topic: { type: String, trim: true, default: '' },
     hasQuiz: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: true },

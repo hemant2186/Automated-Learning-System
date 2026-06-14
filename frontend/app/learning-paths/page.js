@@ -6,8 +6,10 @@ import Link from "next/link";
 import DashboardShell from "../../components/DashboardShell";
 import FilterChips from "../../components/catalog/FilterChips";
 import SearchBar from "../../components/catalog/SearchBar";
+import ProgressBar from "../../components/progress/ProgressBar";
 import { PATH_CATEGORIES } from "../../lib/constants/categories";
 import { fetchCatalog } from "../../services/catalogService";
+import { fetchUserPaths } from "../../services/progressService";
 
 const DIFFICULTY_OPTIONS = [
   { id: "beginner", label: "Beginner" },
@@ -47,6 +49,7 @@ function buildMilestones(path) {
 
 export default function LearningPathsPage() {
   const [paths, setPaths] = useState([]);
+  const [enrolledPaths, setEnrolledPaths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -97,6 +100,18 @@ export default function LearningPathsPage() {
 
     loadCatalog().catch(() => {});
 
+    // Load enrolled paths for the user (non-blocking). If it fails or returns empty,
+    // we silently skip showing the "Your Learning Paths" section.
+    (async function loadEnrolled() {
+      try {
+        const res = await fetchUserPaths();
+        if (!cancelled && res && Array.isArray(res.items) && res.items.length) {
+          setEnrolledPaths(res.items);
+        }
+      } catch (e) {
+        // ignore errors — do not surface on catalog
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -164,6 +179,47 @@ export default function LearningPathsPage() {
             </div>
           </div>
         </div>
+
+        {/* Your Learning Paths - only shown when the user has enrolled paths */}
+        {!loading && enrolledPaths && enrolledPaths.length > 0 ? (
+          <div className="row g-4 mb-4">
+            <div className="col-12">
+              <h2 className="fw-bold">Your Learning Paths</h2>
+            </div>
+
+            {enrolledPaths.map((item) => {
+              // Support both shapes: top-level fields or nested `path` object
+              const pathDto = item.path || item;
+              const slug = pathDto.slug || pathDto.pathSlug || (pathDto.path && pathDto.path.slug);
+              const title = pathDto.title || pathDto.pathTitle || pathDto.name || "Untitled";
+              const progressPercent = Number(item.progressPercent ?? item.progress ?? 0);
+              const totalLessons =
+                item.totalLessons || pathDto.lessonCount || pathDto.lesson_count || 0;
+              const completedLessons =
+                item.completedLessons !== undefined
+                  ? item.completedLessons
+                  : Math.round((progressPercent / 100) * (totalLessons || 0));
+
+              return (
+                <div className="col-lg-6" key={slug || title}>
+                  <div className="section-card p-4 h-100">
+                    <h3 className="fw-bold">{title}</h3>
+                    <div className="mt-2 mb-3">
+                      <div className="h3 mb-1">{progressPercent}% Complete</div>
+                      <div className="small muted-copy mb-2">{completedLessons} / {totalLessons} Lessons</div>
+                      <ProgressBar value={progressPercent} max={100} label="Path completion" />
+                    </div>
+                    <div className="mt-3 text-end">
+                      <Link href={`/learning-paths/${slug}`} className="btn btn-primary">
+                        Continue Learning
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="section-card p-4 p-lg-5 mb-4">

@@ -42,6 +42,10 @@ const PATH_DETAIL_FIELDS = [
 const MODULE_FIELDS = 'title slug description order lessonCount';
 const LESSON_META_FIELDS = 'moduleId title slug durationMinutes hasQuiz topic order';
 
+/**
+ * Shared public path summary DTO used by catalog and path listing endpoints.
+ * This shape excludes internal database fields and lesson/quiz content.
+ */
 function toPathSummary(path) {
   return {
     id: path._id.toString(),
@@ -145,6 +149,7 @@ async function getPathStructureBySlug(slug) {
 }
 
 module.exports = {
+  PATH_SUMMARY_FIELDS,
   listPublishedPaths,
   getPathStructureBySlug,
   toPathSummary,

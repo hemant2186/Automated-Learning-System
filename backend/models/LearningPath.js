@@ -15,7 +15,8 @@ const learningPathSchema = new mongoose.Schema(
     projectCount: { type: Number, min: 0, default: 0 },
     resourceCount: { type: Number, min: 0, default: 0 },
     tags: [{ type: String, trim: true }],
-    // Maps to legacy Activity.topic values for recommendation-engine bridging.
+    // Public curriculum metadata. Intentionally exposed for catalog and path
+    // metadata display, and to bridge to existing recommendation/activity systems.
     topics: [{ type: String, trim: true }],
     isPublished: { type: Boolean, default: true },
     order: { type: Number, min: 0, default: 0 },
