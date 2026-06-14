@@ -1,13 +1,11 @@
 const express = require('express');
+const auth = require('../middleware/auth');
+const quizController = require('../controllers/quizController');
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    resource: 'quizzes',
-    message: 'Quiz API will be available in a future release.',
-  });
-});
+router.get('/:lessonSlug', auth, quizController.getQuiz);
+router.post('/:lessonSlug/submit', auth, quizController.submitQuiz);
+router.get('/:lessonSlug/results', auth, quizController.getQuizResults);
 
 module.exports = router;

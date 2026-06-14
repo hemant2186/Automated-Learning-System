@@ -12,6 +12,7 @@ const LESSON_FIELDS = [
   'exampleCode',
   'practice.prompt',
   'practice.hints',
+  'hasQuiz',
   'pathId',
   'moduleId',
 ].join(' ');
@@ -33,6 +34,7 @@ function toLessonDto(lesson, path, module, previousLesson, nextLesson) {
       prompt: lesson.practice?.prompt || '',
       hints: lesson.practice?.hints || [],
     },
+    hasQuiz: Boolean(lesson.hasQuiz),
     path: {
       id: path._id.toString(),
       slug: path.slug,

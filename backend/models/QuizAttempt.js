@@ -18,6 +18,8 @@ const quizAttemptSchema = new mongoose.Schema(
     pathId: { type: mongoose.Schema.Types.ObjectId, ref: 'LearningPath', required: true, index: true },
     answers: { type: [quizAnswerSchema], default: [] },
     score: { type: Number, min: 0, max: 100, required: true },
+    correct: { type: Number, min: 0, required: true, default: 0 },
+    total: { type: Number, min: 0, required: true, default: 0 },
     passed: { type: Boolean, default: false },
     attemptNumber: { type: Number, min: 1, default: 1 },
     completedAt: { type: Date, default: Date.now },

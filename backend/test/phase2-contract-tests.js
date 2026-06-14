@@ -8,6 +8,8 @@ const Lesson = require('../models/Lesson');
 const User = require('../models/User');
 const UserPath = require('../models/UserPath');
 const UserProgress = require('../models/UserProgress');
+const Quiz = require('../models/Quiz');
+const QuizAttempt = require('../models/QuizAttempt');
 const {
   makeLesson,
   makeModule,
@@ -88,6 +90,17 @@ function collectRestrictedKeys(value, path = '$', findings = []) {
 
 function assertNoRestrictedKeys(body) {
   const findings = collectRestrictedKeys(body);
+  assert.deepEqual(findings, []);
+}
+
+function assertNoQuizAnswerLeakage(body) {
+  const findings = collectRestrictedKeys(body).filter((path) => (
+    path.endsWith('.correctKey') ||
+    path.endsWith('.explanation') ||
+    path.endsWith('._id') ||
+    path.endsWith('.answers')
+  ));
+
   assert.deepEqual(findings, []);
 }
 
@@ -314,6 +327,88 @@ function installProgressApiStubs(replaceMethod, { enrolled = true } = {}) {
   };
 }
 
+function makeQuiz(overrides = {}) {
+  return {
+    _id: { toString: () => 'quiz-1' },
+    title: 'Variables Checkpoint Quiz',
+    lessonId: { toString: () => 'lesson-1' },
+    pathId: { toString: () => 'path-1' },
+    passingScore: 70,
+    isPublished: true,
+    questions: [
+      {
+        _id: { toString: () => 'question-1' },
+        order: 1,
+        prompt: 'Which variable name is valid?',
+        options: [
+          { key: 'A', text: '2score' },
+          { key: 'B', text: 'score_total' },
+          { key: 'C', text: 'score-total' },
+          { key: 'D', text: 'for' },
+        ],
+        correctKey: 'B',
+        explanation: 'Hidden explanation',
+      },
+      {
+        _id: { toString: () => 'question-2' },
+        order: 2,
+        prompt: 'What is x after x = 1; x = x + 1?',
+        options: [
+          { key: 'A', text: '1' },
+          { key: 'B', text: '11' },
+          { key: 'C', text: '2' },
+          { key: 'D', text: 'x' },
+        ],
+        correctKey: 'C',
+        explanation: 'Hidden explanation',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function installQuizApiStubs(replaceMethod, { enrolled = true, latestAttempt = null } = {}) {
+  const path = makePath();
+  const lesson = makeLesson({
+    _id: { toString: () => 'lesson-1' },
+    pathId: path._id,
+    moduleId: makeModule()._id,
+    slug: 'variables',
+    hasQuiz: true,
+  });
+  const quiz = makeQuiz({
+    lessonId: lesson._id,
+    pathId: path._id,
+  });
+  const userPath = enrolled
+    ? {
+        _id: { toString: () => 'userpath-1' },
+        userId: { toString: () => 'user-1' },
+        pathId: path._id,
+      }
+    : null;
+
+  const restoreLessonFindOne = replaceMethod(Lesson, 'findOne', (query) => {
+    if (query.slug === lesson.slug) {
+      return makeQueryResult(lesson);
+    }
+    return makeQueryResult(null);
+  });
+  const restoreQuizFindOne = replaceMethod(Quiz, 'findOne', () => makeQueryResult(quiz));
+  const restoreUserPathFindOne = replaceMethod(UserPath, 'findOne', () => makeQueryResult(userPath));
+  const restoreQuizAttemptFindOne = replaceMethod(QuizAttempt, 'findOne', () => makeQueryResult(latestAttempt));
+
+  return {
+    restore: () => {
+      restoreLessonFindOne();
+      restoreQuizFindOne();
+      restoreUserPathFindOne();
+      restoreQuizAttemptFindOne();
+    },
+    fixtures: { lesson, quiz, path },
+  };
+}
+
 async function registerPhase2ContractTests({ app, run, replaceMethod }) {
   await run('Phase 2 GET /api/catalog exposes only the public catalog DTO', async () => {
     const restore = installPhase2ModelStubs(replaceMethod);
@@ -408,6 +503,7 @@ async function registerPhase2ContractTests({ app, run, replaceMethod }) {
         'content',
         'exampleCode',
         'practice',
+        'hasQuiz',
         'path',
         'module',
         'previousLesson',
@@ -418,6 +514,7 @@ async function registerPhase2ContractTests({ app, run, replaceMethod }) {
       assertExactKeys(response.body.practice, ['prompt', 'hints']);
       assert.equal(response.body.previousLesson, null);
       assert.equal(response.body.nextLesson.slug, 'operators');
+      assert.equal(response.body.hasQuiz, true);
       assertNoRestrictedKeys(response.body);
       assert.equal(typeof response.body.id, 'string');
       assert.equal(typeof response.body.path.id, 'string');
@@ -634,6 +731,163 @@ async function registerPhase2ContractTests({ app, run, replaceMethod }) {
       restore();
       restoreUserFindById();
       restoreLessonFindOne();
+    }
+  });
+
+  await run('Phase 6 GET /api/quizzes/:lessonSlug returns safe quiz DTO without answer leakage', async () => {
+    const { restore } = installQuizApiStubs(replaceMethod, { enrolled: true });
+    const restoreUserFindById = replaceMethod(User, 'findById', async () => ({ _id: { toString: () => 'user-1' } }));
+
+    try {
+      const response = await request(app)
+        .get('/api/quizzes/variables')
+        .set('Authorization', `Bearer ${jwt.sign({ id: 'user-1', type: 'access' }, process.env.JWT_SECRET)}`);
+
+      assert.equal(response.status, 200);
+      assertExactKeys(response.body, ['title', 'lessonSlug', 'questions']);
+      assertExactKeys(response.body.questions[0], ['id', 'prompt', 'options']);
+      assert.deepEqual(Object.keys(response.body.questions[0].options).sort(), ['A', 'B', 'C', 'D']);
+      assertNoQuizAnswerLeakage(response.body);
+    } finally {
+      restore();
+      restoreUserFindById();
+    }
+  });
+
+  await run('Phase 6 POST /api/quizzes/:lessonSlug/submit grades and stores passed quiz completion', async () => {
+    const { restore, fixtures } = installQuizApiStubs(replaceMethod, { enrolled: true });
+    const restoreUserFindById = replaceMethod(User, 'findById', async () => ({ _id: { toString: () => 'user-1' } }));
+    let createdAttempt = null;
+    let progressUpdate = null;
+    const restoreAttemptCount = replaceMethod(QuizAttempt, 'countDocuments', async () => 1);
+    const restoreAttemptCreate = replaceMethod(QuizAttempt, 'create', async (payload) => {
+      createdAttempt = payload;
+      return payload;
+    });
+    const restoreProgressUpdate = replaceMethod(UserProgress, 'findOneAndUpdate', async (filter, update) => {
+      progressUpdate = { filter, update };
+      return update.$set;
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/quizzes/variables/submit')
+        .set('Authorization', `Bearer ${jwt.sign({ id: 'user-1', type: 'access' }, process.env.JWT_SECRET)}`)
+        .send({
+          answers: {
+            'question-1': 'B',
+            'question-2': 'C',
+          },
+        });
+
+      assert.equal(response.status, 201);
+      assert.deepEqual(response.body, {
+        score: 100,
+        correct: 2,
+        total: 2,
+        passed: true,
+      });
+      assert.equal(createdAttempt.score, 100);
+      assert.equal(createdAttempt.correct, 2);
+      assert.equal(createdAttempt.total, 2);
+      assert.equal(createdAttempt.passed, true);
+      assert.equal(createdAttempt.attemptNumber, 2);
+      assert.equal(progressUpdate.filter.type, 'quiz');
+      assert.equal(progressUpdate.update.$set.quizId.toString(), fixtures.quiz._id.toString());
+      assert.equal(progressUpdate.update.$set.completed, true);
+    } finally {
+      restore();
+      restoreUserFindById();
+      restoreAttemptCount();
+      restoreAttemptCreate();
+      restoreProgressUpdate();
+    }
+  });
+
+  await run('Phase 6 POST /api/quizzes/:lessonSlug/submit stores failed attempt without quiz completion', async () => {
+    const { restore } = installQuizApiStubs(replaceMethod, { enrolled: true });
+    const restoreUserFindById = replaceMethod(User, 'findById', async () => ({ _id: { toString: () => 'user-1' } }));
+    let createdAttempt = null;
+    let progressUpdated = false;
+    const restoreAttemptCount = replaceMethod(QuizAttempt, 'countDocuments', async () => 0);
+    const restoreAttemptCreate = replaceMethod(QuizAttempt, 'create', async (payload) => {
+      createdAttempt = payload;
+      return payload;
+    });
+    const restoreProgressUpdate = replaceMethod(UserProgress, 'findOneAndUpdate', async () => {
+      progressUpdated = true;
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/quizzes/variables/submit')
+        .set('Authorization', `Bearer ${jwt.sign({ id: 'user-1', type: 'access' }, process.env.JWT_SECRET)}`)
+        .send({
+          answers: {
+            'question-1': 'A',
+            'question-2': 'A',
+          },
+        });
+
+      assert.equal(response.status, 201);
+      assert.deepEqual(response.body, {
+        score: 0,
+        correct: 0,
+        total: 2,
+        passed: false,
+      });
+      assert.equal(createdAttempt.passed, false);
+      assert.equal(progressUpdated, false);
+    } finally {
+      restore();
+      restoreUserFindById();
+      restoreAttemptCount();
+      restoreAttemptCreate();
+      restoreProgressUpdate();
+    }
+  });
+
+  await run('Phase 6 GET /api/quizzes/:lessonSlug/results returns latest result only', async () => {
+    const latestAttempt = {
+      score: 50,
+      correct: 1,
+      total: 2,
+      passed: false,
+      completedAt: new Date('2026-02-01T00:00:00Z'),
+      answers: [{ selectedKey: 'A', correct: false }],
+    };
+    const { restore } = installQuizApiStubs(replaceMethod, { enrolled: true, latestAttempt });
+    const restoreUserFindById = replaceMethod(User, 'findById', async () => ({ _id: { toString: () => 'user-1' } }));
+
+    try {
+      const response = await request(app)
+        .get('/api/quizzes/variables/results')
+        .set('Authorization', `Bearer ${jwt.sign({ id: 'user-1', type: 'access' }, process.env.JWT_SECRET)}`);
+
+      assert.equal(response.status, 200);
+      assertExactKeys(response.body, ['score', 'correct', 'total', 'passed', 'completedAt']);
+      assert.equal(response.body.score, 50);
+      assertNoRestrictedKeys(response.body);
+    } finally {
+      restore();
+      restoreUserFindById();
+    }
+  });
+
+  await run('Phase 6 quiz endpoints return 403 for non-enrolled users', async () => {
+    const { restore } = installQuizApiStubs(replaceMethod, { enrolled: false });
+    const restoreUserFindById = replaceMethod(User, 'findById', async () => ({ _id: { toString: () => 'user-1' } }));
+
+    try {
+      const response = await request(app)
+        .get('/api/quizzes/variables')
+        .set('Authorization', `Bearer ${jwt.sign({ id: 'user-1', type: 'access' }, process.env.JWT_SECRET)}`);
+
+      assert.equal(response.status, 403);
+      assert.match(response.body.error, /enroll/i);
+    } finally {
+      restore();
+      restoreUserFindById();
     }
   });
 }

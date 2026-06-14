@@ -199,6 +199,14 @@ function LessonViewerPage() {
           >
             Previous Lesson
           </button>
+          {lesson.hasQuiz ? (
+            <Link
+              href={`/learning-paths/${pathSlug}/lessons/${lessonSlug}/quiz`}
+              className="btn btn-outline-success"
+            >
+              Take Quiz
+            </Link>
+          ) : null}
           <button
             type="button"
             className="btn btn-success"
