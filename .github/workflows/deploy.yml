@@ -9,7 +9,6 @@ jobs:
 backend-build-and-push:
 runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout Repository
     uses: actions/checkout@v4
@@ -30,4 +29,3 @@ steps:
     run: |
       docker push \
         ${{ secrets.DOCKER_USERNAME }}/learning-path-backend:latest
-```
