@@ -47,6 +47,7 @@ export default function ProfilePage() {
         setStatus("Profile synced.");
       } catch {
         setStatus("Using your last saved session.");
+        showToast("Couldn't refresh your profile right now.", "warning");
       }
     };
 

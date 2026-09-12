@@ -1,3 +1,45 @@
+# Presenting PathPilot AI
+
+This guide is for explaining the project in a portfolio, review, or interview. The main product documentation lives in [README.md](README.md).
+
+## One-line summary
+
+PathPilot AI is a full-stack adaptive learning platform that turns learner activity into personalized study guidance and instructor intervention signals.
+
+## Problem and solution
+
+Beginner programmers often do not know what to study next, while instructors lack an efficient way to spot repeated friction across a cohort. PathPilot records lesson, quiz, coding, time, completion, and attempt data, then calculates topic mastery, trends, review queues, recommendations, and risk signals.
+
+## Core features to demonstrate
+
+- Student and instructor workflows protected by JWT authentication.
+- Published lesson delivery with quizzes and auto-graded coding exercises.
+- Server-side scoring that feeds the existing activity and recommendation pipeline.
+- Topic mastery, trend, stale-topic review queues, and computed risk signals.
+- Instructor cohort analytics with at-risk learners and CSV export.
+- Idempotent demo sessions with varied multi-week histories.
+
+## Architecture talking points
+
+- Next.js App Router provides the student, instructor, and lesson experiences.
+- Express routes stay thin and delegate to controllers and services.
+- MongoDB/Mongoose stores curriculum, users, attempts, submissions, and activity history.
+- `backend/services/recommender.js` derives recommendations and risk output from raw activity rather than hardcoded labels.
+- Piston executes submitted coding exercises remotely; student code is not run in the application process.
+
+## Useful walkthrough
+
+1. Start the backend and frontend using the setup steps in [README.md](README.md).
+2. Open `Student Demo`, inspect the trend and review queue, and complete a lesson quiz or coding exercise.
+3. Open `Instructor Demo` and compare the thriving, at-risk, and just-starting learners.
+4. Review the API and tests when discussing route contracts, hidden-test protection, and recommendation inputs.
+
+## Future directions
+
+- More curriculum authoring tools and exercise languages.
+- Richer time-series cohort visualizations.
+- Stronger end-to-end coverage around authenticated learning workflows.
+- Deployment automation and continuous integration.
 # PathPilot AI Portfolio Guide
 
 ## One-line summary

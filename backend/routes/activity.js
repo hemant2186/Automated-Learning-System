@@ -3,6 +3,7 @@ const Activity = require('../models/Activity');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { TOPICS } = require('../services/analysis');
+const { recordActivity } = require('../services/activityService');
 
 const router = express.Router();
 
@@ -51,12 +52,7 @@ router.post('/ingest', auth, async (req, res) => {
       return res.status(400).json({ error: payload.error });
     }
 
-    const completionBonus = payload.completed ? 10 : 0;
-    const pointsEarned = Math.round((payload.quizScore + payload.codingScore) / 2) + completionBonus;
-    const activity = new Activity({ ...payload, user: req.user._id, pointsEarned });
-    await activity.save();
-
-    await User.findByIdAndUpdate(req.user._id, { $inc: { points: pointsEarned } });
+    const activity = await recordActivity({ userId: req.user._id, ...payload });
     res.status(201).send(activity);
   } catch (e) {
     res.status(400).json({ error: e.message || 'Could not save activity.' });
@@ -81,7 +77,8 @@ router.get('/progress', auth, async (req, res) => {
     });
     res.send(progress);
   } catch (e) {
-    res.status(500).send(e);
+    console.error('Activity progress error:', e);
+    res.status(500).json({ error: 'Could not load activity progress.' });
   }
 });
 
@@ -91,7 +88,8 @@ router.get('/timeline', auth, async (req, res) => {
     const activities = await Activity.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.send(activities);
   } catch (e) {
-    res.status(500).send(e);
+    console.error('Activity timeline error:', e);
+    res.status(500).json({ error: 'Could not load activity timeline.' });
   }
 });
 
@@ -101,7 +99,8 @@ router.get('/leaderboard', auth, async (req, res) => {
     const users = await User.find({ role: 'student' }).sort({ points: -1 }).limit(10).select('name points');
     res.send(users);
   } catch (e) {
-    res.status(500).send(e);
+    console.error('Activity leaderboard error:', e);
+    res.status(500).json({ error: 'Could not load activity leaderboard.' });
   }
 });
 

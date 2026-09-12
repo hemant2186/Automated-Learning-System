@@ -21,13 +21,15 @@ const RESOURCE_TYPES = [
 
 const USER_PATH_STATUSES = ['not-started', 'in-progress', 'completed', 'paused'];
 
-const PROGRESS_TYPES = ['lesson', 'quiz', 'project', 'module', 'path'];
+const PROGRESS_TYPES = ['lesson', 'quiz', 'code-exercise', 'project', 'module', 'path'];
 
 const QUESTION_OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
 const CONTENT_FORMATS = ['markdown', 'html'];
 
 const PROJECT_STATUSES = ['draft', 'published', 'archived'];
+
+const SUPPORTED_LANGUAGES = ['python', 'javascript'];
 
 module.exports = {
   PATH_CATEGORIES,
@@ -38,4 +40,5 @@ module.exports = {
   QUESTION_OPTION_KEYS,
   CONTENT_FORMATS,
   PROJECT_STATUSES,
+  SUPPORTED_LANGUAGES,
 };

@@ -119,8 +119,8 @@ export default function LoginPage() {
       }
       showToast("Welcome back. Redirecting to dashboard.", "success");
     } catch (error) {
-      setStatus(error.response?.data?.error || "Authentication failed.");
-      showToast(error.response?.data?.error || "Authentication failed.", "danger");
+      setStatus("Authentication failed.");
+      showToast("Authentication failed. Please check your details and try again.", "danger");
     }
   };
 
@@ -132,8 +132,8 @@ export default function LoginPage() {
       showToast(`${role === "instructor" ? "Instructor" : "Student"} demo ready.`, "success");
       router.push(role === "instructor" ? "/instructor" : "/dashboard");
     } catch (error) {
-      setStatus(error.response?.data?.error || "Could not create demo session.");
-      showToast(error.response?.data?.error || "Could not create demo session.", "danger");
+      setStatus("Could not create demo session.");
+      showToast("Couldn't create the demo session right now.", "danger");
     }
   };
 
@@ -262,6 +262,9 @@ export default function LoginPage() {
                     onChange={updateField}
                     required
                   />
+                  {mode === "register" ? (
+                    <div className="form-text">Use at least 8 characters with one letter and one number.</div>
+                  ) : null}
                   <button className="btn btn-primary btn-lg" type="submit">
                     {mode === "login" ? "Enter Dashboard" : "Register and Continue"}
                   </button>

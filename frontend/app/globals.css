@@ -67,6 +67,12 @@ a {
   min-height: 100vh;
 }
 
+@media (max-width: 1199.98px) {
+  .workspace-sidebar {
+    position: static !important;
+  }
+}
+
 .theme-toggle-slot {
   position: fixed;
   right: 18px;

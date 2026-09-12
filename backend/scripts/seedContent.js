@@ -14,6 +14,7 @@ const Lesson = require('../models/Lesson');
 const Quiz = require('../models/Quiz');
 const Project = require('../models/Project');
 const Resource = require('../models/Resource');
+const CodingExercise = require('../models/CodingExercise');
 
 const PYTHON_FUNDAMENTALS = {
   path: {
@@ -429,6 +430,32 @@ Common operations: append, len, iteration, and slicing.`,
       },
     ],
   },
+  codingExercises: [
+    {
+      lessonSlug: 'variables',
+      title: 'Double a Number',
+      language: 'python',
+      topic: 'Variables and Data Types',
+      prompt: 'Read one integer from standard input and print twice its value.',
+      starterCode: 'value = int(input())\n# Print twice the value here\n',
+      testCases: [
+        { input: '4\n', expectedOutput: '8', hidden: false },
+        { input: '-3\n', expectedOutput: '-6', hidden: true },
+      ],
+    },
+    {
+      lessonSlug: 'operators',
+      title: 'Calculate a Rectangle Area',
+      language: 'python',
+      topic: 'Operators',
+      prompt: 'Read width and height on separate lines and print the rectangle area.',
+      starterCode: 'width = int(input())\nheight = int(input())\n# Print the area here\n',
+      testCases: [
+        { input: '5\n3\n', expectedOutput: '15', hidden: false },
+        { input: '12\n7\n', expectedOutput: '84', hidden: true },
+      ],
+    },
+  ],
   projects: [
     {
       title: 'Calculator App',
@@ -538,6 +565,14 @@ async function upsertQuiz(pathId, lessonId, quizData) {
   );
 }
 
+async function upsertCodingExercise(pathId, lessonId, exerciseData) {
+  return CodingExercise.findOneAndUpdate(
+    { lessonId },
+    { $set: { ...exerciseData, pathId, lessonId } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+}
+
 async function upsertProject(pathId, projectData) {
   return Project.findOneAndUpdate(
     { pathId, slug: projectData.slug },
@@ -580,7 +615,7 @@ async function updatePathCounts(pathId) {
 }
 
 async function seedPythonFundamentals() {
-  const { path, modules, quiz, projects, resources } = PYTHON_FUNDAMENTALS;
+  const { path, modules, quiz, codingExercises, projects, resources } = PYTHON_FUNDAMENTALS;
   const pathDoc = await upsertPath(path);
   const lessonIdBySlug = new Map();
 
@@ -605,6 +640,16 @@ async function seedPythonFundamentals() {
   });
 
   await Lesson.findByIdAndUpdate(quizLessonId, { hasQuiz: true });
+
+  for (const exerciseData of codingExercises) {
+    const exerciseLessonId = lessonIdBySlug.get(exerciseData.lessonSlug);
+    if (!exerciseLessonId) {
+      throw new Error(`Coding exercise lesson slug not found: ${exerciseData.lessonSlug}`);
+    }
+    const { lessonSlug, ...exerciseFields } = exerciseData;
+    await upsertCodingExercise(pathDoc._id, exerciseLessonId, exerciseFields);
+    await Lesson.findByIdAndUpdate(exerciseLessonId, { hasCodeExercise: true });
+  }
 
   for (const projectData of projects) {
     await upsertProject(pathDoc._id, projectData);

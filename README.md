@@ -1,98 +1,36 @@
 # PathPilot AI
 
-PathPilot AI is a full-stack adaptive learning platform that turns learner activity into real, actionable progress for students and instructors. It is built to solve real-world learning problems by tracking practice sessions, identifying weak topics, recommending the best next topic, and helping instructors intervene early.
+PathPilot AI is an adaptive learning platform for beginner programmers. It turns lesson progress, quiz results, coding-exercise submissions, time spent, and repeated attempts into topic mastery signals, next-step recommendations, and instructor intervention queues. Students get a concrete place to continue learning; instructors get evidence about who needs support and why.
 
-## Why this project matters
+## What it does
 
-Many education products only show dashboards. PathPilot AI goes further by using learner behavior to answer these real needs:
+- Learners register, sign in, manage goals, and work through published learning paths.
+- Lesson pages deliver seeded Markdown content, examples, practice prompts, quizzes, and auto-graded coding exercises.
+- Quiz and coding submissions are scored on the server and become real activity signals for recommendations.
+- The backend calculates mastery, topic strengths, weaknesses, readiness, trends, review queues, and risk levels.
+- Students see recommendations, topic progress, timelines, and leaderboard information.
+- Instructors see cohort analytics, at-risk learners, weak-topic summaries, and CSV exports.
 
-- students need a clear next step after each study session
-- instructors need a fast way to identify struggling learners
-- learning teams need evidence-based coaching signals, not guesswork
-- bootcamps and self-paced platforms need to convert practice data into measurable mastery
+## Try it
 
-## Real-world use cases
+Start both applications locally, then use the demo buttons on the homepage:
 
-- Bootcamp instructors can monitor cohort progress, spot weak topics, and export progress reports for remediation.
-- Self-paced learners can log each session and receive the next recommended topic based on actual performance.
-- Training teams can use the platform as a lightweight skill-assessment tool for onboarding or internal reskilling.
-- EdTech MVPs can adopt this architecture to build product features around learner analytics, recommendations, and personalized study plans.
+- `Student Demo`
+- `Instructor Demo`
 
-## What the project does
-
-- Learners can register, sign in, update their profile, and manage learning goals.
-- Learners can log study sessions with quiz score, coding score, time spent, attempts, completion status, and feedback.
-- The backend calculates mastery, topic strength, weaknesses, readiness levels, and the next best topic.
-- Learners see a dashboard with recommendations, topic progress, activity timelines, and leaderboard motivation.
-- Instructors see cohort-level analytics, at-risk learners, weak topic summaries, and CSV export for stakeholder reporting.
-- Demo sessions allow product evaluation without requiring a full signup.
-
-## What makes this employer-ready
-
-- Full-stack implementation with a modern Next.js frontend and Express/MongoDB backend.
-- Secure role-based authentication with JWT access and refresh tokens.
-- Real recommendation logic based on scores, time, and attempts rather than a static checklist.
-- Instructor-facing analytics built to support real intervention workflows.
-- Clear frontend/backend separation and API-first design.
-- Demo mode and seeded data, making the app instantly usable for evaluation.
-
-## Resume-ready summary
-
-- Built PathPilot AI, a full-stack adaptive learning system for novice programmers with role-based dashboards, personalized recommendations, and instructor analytics.
-- Implemented secure JWT authentication, MongoDB persistence, analytics endpoints, and a recommendation engine that converts activity data into actionable next-study guidance.
-- Designed the product to support bootcamp-style cohort monitoring, student remediation, and data-driven learning plans.
-
-## Main backend routes
-
-### Auth
-
-- `POST /api/auth/register` — user sign-up with role, goals, and skill level
-- `POST /api/auth/login` — secure login with bcrypt password verification
-- `GET /api/auth/me` — current user profile and role
-- `PUT /api/auth/me` — update profile, goals, and preferences
-- `POST /api/auth/refresh` — refresh JWT access tokens automatically
-- `POST /api/auth/demo-session` — create demo student or instructor sessions instantly
-
-### Activity
-
-- `POST /api/activity/ingest` — log hands-on learning activity for a topic
-- `GET /api/activity/progress` — fetch topic-by-topic progress and mastery signals
-- `GET /api/activity/timeline` — retrieve recent learner activity events
-- `GET /api/activity/leaderboard` — show top-performing learners and engagement
-
-### Recommendations
-
-- `GET /api/recommendations/analyze` — compute mastery, strengths, weaknesses, and readiness
-- `GET /api/recommendations/path` — return actionable next-topic recommendations
-- `POST /api/recommendations/feedback` — store learner feedback for improved future iterations
-
-### Instructor
-
-- `GET /api/instructor/analytics` — cohort analytics with weak topics and risk levels
-- `GET /api/instructor/analytics/export.csv` — export reports easily for stakeholders
-- `POST /api/instructor/seed` — seed demo cohort data for instructor preview
-
-## How frontend and backend connect
-
-The frontend API layer is in `frontend/lib/api.js`.
-
-- It uses `NEXT_PUBLIC_API_URL` to point to the backend.
-- It attaches the access token automatically on protected requests.
-- It refreshes access tokens with the refresh token when needed.
-- It supports instructor and student flows through the same API layer.
-
-The backend exposes REST APIs and stores learner data in MongoDB. Recommendation logic is implemented in `backend/services/recommender.js`, which returns not only weak topics but also next-step study actions and resources.
+Demo sessions are idempotent. The student demo has a realistic multi-week history across several topics, including improvement and stale review data. The instructor demo includes a thriving learner, an at-risk learner, and a just-starting learner. Check the dashboard trend and review queue, then open the instructor analytics view to see the computed risk signals.
 
 ## Tech stack
 
 ### Frontend
 
-- Next.js 14
+- Next.js 14 App Router
 - React 18
 - Axios
 - Bootstrap
 - Recharts
 - Lucide React
+- React Markdown
 
 ### Backend
 
@@ -100,31 +38,13 @@ The backend exposes REST APIs and stores learner data in MongoDB. Recommendation
 - Express
 - Mongoose
 - MongoDB Atlas or local MongoDB
-- JWT authentication
+- JWT authentication with access and refresh tokens
 - bcryptjs
-
-## Project structure
-
-```text
-learning-path-system/
-├── backend/
-│   ├── app.js
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   └── .env.example
-├── frontend/
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   └── .env.example
-└── README.md
-```
+- Piston API for remote coding-exercise execution
 
 ## Local setup
 
-### 1. Backend setup
+### Backend
 
 ```bash
 cd backend
@@ -132,21 +52,25 @@ npm install
 copy .env.example .env
 ```
 
-Update `backend/.env` with your MongoDB connection string and JWT secret.
-
-Start the backend:
+Set `MONGO_URI` and `JWT_SECRET` in `backend/.env`, then start the API:
 
 ```bash
 npm run dev
 ```
 
-Run backend tests:
+Seed the published path, lessons, quizzes, and coding exercises:
+
+```bash
+npm run seed:content
+```
+
+Run the backend tests:
 
 ```bash
 npm test
 ```
 
-### 2. Frontend setup
+### Frontend
 
 ```bash
 cd frontend
@@ -155,44 +79,79 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Open:
+Open `http://localhost:3000`. The frontend uses `NEXT_PUBLIC_API_URL`, which defaults to `http://127.0.0.1:5000` in the API client.
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://127.0.0.1:5000`
+## API routes
 
-## Demo access
+### Auth
 
-You can start directly from the homepage with:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `PUT /api/auth/me`
+- `POST /api/auth/refresh`
+- `POST /api/auth/demo-session`
 
-- `Student Demo`
-- `Instructor Demo`
+### Learning paths and lessons
 
-These buttons create demo sessions and seed demo data for quick evaluation.
+- `GET /api/catalog`
+- `GET /api/paths`
+- `GET /api/paths/:slug`
+- `GET /api/lessons/path/:pathSlug`
+- `GET /api/lessons/:pathSlug/:lessonSlug`
+- `GET /api/lessons/:slug` (legacy compatibility route)
 
-## Real-world product value
+### Quizzes and coding exercises
 
-This project is not just a showcase of technologies — it is a functional product for:
+- `GET /api/quizzes/lesson/:lessonId`
+- `POST /api/quizzes/:quizId/submit`
+- `GET /api/quizzes/:lessonSlug` (legacy compatibility route)
+- `POST /api/quizzes/:lessonSlug/submit` (legacy compatibility route)
+- `GET /api/quizzes/:lessonSlug/results` (legacy compatibility route)
+- `GET /api/code-exercises/lesson/:lessonId`
+- `POST /api/code-exercises/:exerciseId/submit`
 
-- guiding learners through a sequence of study topics based on performance
-- surfacing weak concepts before learners fall behind
-- giving instructors transparent, exportable reports for cohort interventions
-- turning raw activity data into a usable learning path
+The older slug-based quiz and lesson routes remain available for compatibility. Quiz answers and coding-exercise hidden tests are never exposed before submission.
 
-## Verification status
+### Activity and recommendations
 
-The current codebase has been verified for:
+- `POST /api/activity/ingest`
+- `GET /api/activity/progress`
+- `GET /api/activity/timeline`
+- `GET /api/activity/leaderboard`
+- `GET /api/recommendations/analyze`
+- `GET /api/recommendations/path`
+- `POST /api/recommendations/feedback`
 
-- backend startup and MongoDB connection
-- frontend production build
-- live register/login flow
-- protected learner endpoints
-- activity ingestion
-- recommendation and analysis responses
+### Progress and instructor tools
 
-## Next improvement ideas
+- `GET /api/progress`
+- `GET /api/progress/:slug`
+- `POST /api/progress/:slug/enroll`
+- `POST /api/progress/lessons/:lessonSlug/complete`
+- `GET /api/instructor/analytics`
+- `GET /api/instructor/analytics/export.csv`
+- `POST /api/instructor/seed`
 
-- stronger automated API tests
-- admin-only management tools
-- richer analytics visualizations
-- email/password reset flow
-- deployment manifests for one-click hosting
+## Architecture notes
+
+The Next.js frontend communicates with the Express API through `frontend/lib/api.js`. The Axios client attaches access tokens and refreshes them when necessary. Express routes are thin; controllers coordinate request/response behavior and services own reusable business logic. Mongoose models store users, curriculum content, attempts, submissions, and activity history in MongoDB. Recommendation and analysis code consumes those activity records without depending on frontend state.
+
+## Project structure
+
+```text
+backend/
+  app.js
+  controllers/
+  middleware/
+  models/
+  routes/
+  services/
+  scripts/
+  test/
+frontend/
+  app/
+  components/
+  lib/
+  services/
+```

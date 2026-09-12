@@ -12,7 +12,7 @@ const userProgressSchema = new mongoose.Schema(
     type: { type: String, enum: PROGRESS_TYPES, required: true },
     completed: { type: Boolean, default: false },
     score: { type: Number, min: 0, max: 100, default: null },
-  // Legacy topic bridge when syncing with Activity-based recommendations.
+    // Legacy topic bridge when syncing with Activity-based recommendations.
     topic: { type: String, trim: true, default: '' },
     completedAt: { type: Date, default: null },
     metadata: { type: Object, default: {} },

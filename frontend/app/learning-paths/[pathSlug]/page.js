@@ -8,6 +8,7 @@ import DashboardShell from "../../../components/DashboardShell";
 import ProgressBar from "../../../components/progress/ProgressBar";
 import { fetchLearningPathBySlug } from "../../../services/learningPathService";
 import { fetchPathEnrollment, enrollInPath } from "../../../services/progressService";
+import { useToast } from "../../../components/ToastProvider";
 
 function formatDifficulty(value) {
   if (!value) return "Beginner";
@@ -17,6 +18,7 @@ function formatDifficulty(value) {
 export default function LearningPathDetailPage() {
   const params = useParams();
   const pathSlug = params?.pathSlug;
+  const { showToast } = useToast();
 
   const [path, setPath] = useState(null);
   const [enrollment, setEnrollment] = useState(null);
@@ -45,8 +47,10 @@ export default function LearningPathDetailPage() {
         if (active) {
           if (err.response?.status === 404) {
             setError("Learning path not found.");
+            showToast("That learning path could not be found.", "danger");
           } else {
             setError("Unable to load learning path details.");
+            showToast("Couldn't load this learning path right now.", "danger");
           }
         }
       } finally {
@@ -73,7 +77,8 @@ export default function LearningPathDetailPage() {
       const enrollmentResponse = await enrollInPath(pathSlug);
       setEnrollment(enrollmentResponse);
     } catch (err) {
-      setError(err.response?.data?.error || "Could not enroll in this path.");
+      setError("Could not enroll in this path.");
+      showToast("Couldn't enroll in this path right now.", "danger");
     } finally {
       setSaving(false);
     }

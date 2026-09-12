@@ -1,7 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const Activity = require('../models/Activity');
 const auth = require('../middleware/auth');
 const { analyzeUser } = require('../services/recommender');
 
@@ -116,7 +114,8 @@ router.get('/analytics', auth, async (req, res) => {
     const analytics = await buildInstructorAnalytics();
     res.send(analytics);
   } catch (e) {
-    res.status(500).send(e);
+    console.error('Instructor analytics error:', e);
+    res.status(500).json({ error: 'Could not load instructor analytics.' });
   }
 });
 
@@ -160,38 +159,8 @@ router.get('/analytics/export.csv', auth, async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="instructor_analytics_report.csv"');
     res.send(csv);
   } catch (e) {
-    res.status(500).send(e);
-  }
-});
-
-// Seed demo data
-router.post('/seed', auth, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).send({ error: 'Access denied' });
-  }
-
-  try {
-    const users = [
-      { name: 'Demo Student 1', email: 'student1@example.com', password: 'password', skillLevel: 'beginner' },
-      { name: 'Demo Student 2', email: 'student2@example.com', password: 'password', skillLevel: 'intermediate' }
-    ];
-    for (const u of users) {
-      const hashed = await bcrypt.hash(u.password, 8);
-      const user = new User({ ...u, password: hashed });
-      await user.save();
-      // Add some activities
-      const activities = [
-        { user: user._id, topic: 'Variables and Data Types', quizScore: 80, codingScore: 70, timeSpent: 15, completed: true },
-        { user: user._id, topic: 'Loops', quizScore: 60, codingScore: 50, timeSpent: 25, completed: false }
-      ];
-      for (const a of activities) {
-        const act = new Activity(a);
-        await act.save();
-      }
-    }
-    res.send({ message: 'Demo data seeded' });
-  } catch (e) {
-    res.status(500).send(e);
+    console.error('Instructor export error:', e);
+    res.status(500).json({ error: 'Could not export instructor analytics.' });
   }
 });
 

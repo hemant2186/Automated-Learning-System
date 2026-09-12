@@ -4,6 +4,7 @@ const progressController = require('../controllers/progressController');
 
 const router = express.Router();
 
+router.get('/me', auth, progressController.getProgressMe);
 router.get('/', auth, progressController.getUserPathOverview);
 router.get('/:slug', auth, progressController.getPathEnrollment);
 router.post('/:slug/enroll', auth, progressController.enrollInPath);

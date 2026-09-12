@@ -34,7 +34,7 @@ export default function DashboardShell({ title, subtitle, actions, children }) {
     <div className="container py-4 py-lg-5">
       <div className="row g-4">
         <div className="col-xl-3">
-          <aside className="section-card p-4 position-sticky" style={{ top: "90px" }}>
+          <aside className="section-card p-4 workspace-sidebar position-sticky" style={{ top: "90px" }}>
             <div className="eyebrow text-primary mb-2">Workspace</div>
             <h3 className="fw-bold mb-3">PathPilot Control Center</h3>
             <div className="startup-tag mb-3">Startup OS</div>

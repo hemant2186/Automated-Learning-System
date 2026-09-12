@@ -7,6 +7,7 @@ import DashboardShell from "../../components/DashboardShell";
 import FilterChips from "../../components/catalog/FilterChips";
 import SearchBar from "../../components/catalog/SearchBar";
 import ProgressBar from "../../components/progress/ProgressBar";
+import { useToast } from "../../components/ToastProvider";
 import { PATH_CATEGORIES } from "../../lib/constants/categories";
 import { fetchCatalog } from "../../services/catalogService";
 import { fetchUserPaths } from "../../services/progressService";
@@ -48,6 +49,7 @@ function buildMilestones(path) {
 }
 
 export default function LearningPathsPage() {
+  const { showToast } = useToast();
   const [paths, setPaths] = useState([]);
   const [enrolledPaths, setEnrolledPaths] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,10 +88,8 @@ export default function LearningPathsPage() {
       } catch (catalogError) {
         if (!cancelled) {
           setPaths([]);
-          setError(
-            catalogError.response?.data?.error ||
-              "Could not load learning paths right now."
-          );
+          setError("Could not load learning paths right now.");
+          showToast("Couldn't load learning paths right now. Please try again.", "danger");
         }
       } finally {
         if (!cancelled) {
@@ -109,7 +109,7 @@ export default function LearningPathsPage() {
           setEnrolledPaths(res.items);
         }
       } catch (e) {
-        // ignore errors — do not surface on catalog
+        showToast("Your enrolled paths are unavailable right now.", "warning");
       }
     })();
     return () => {
@@ -262,6 +262,9 @@ export default function LearningPathsPage() {
                       </li>
                     ))}
                   </ul>
+                  <Link href={`/learn/${path.slug}`} className="btn btn-primary mt-4">
+                    Browse lessons
+                  </Link>
                 </div>
               </div>
             ))}

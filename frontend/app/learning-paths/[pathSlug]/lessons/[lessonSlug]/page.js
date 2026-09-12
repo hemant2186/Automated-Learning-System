@@ -8,10 +8,12 @@ import ReactMarkdown from "react-markdown";
 import DashboardShell from "../../../../../components/DashboardShell";
 import { fetchLessonBySlug } from "../../../../../services/lessonService";
 import { completeLesson } from "../../../../../services/progressService";
+import { useToast } from "../../../../../components/ToastProvider";
 
 function LessonViewerPage() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,7 @@ function LessonViewerPage() {
           } else {
             setError("Unable to load lesson content.");
           }
+          showToast("Couldn't load this lesson right now. Please try again.", "danger");
         }
       } finally {
         if (isMounted) {
@@ -76,7 +79,8 @@ function LessonViewerPage() {
       setIsCompleted(true);
     } catch (err) {
       console.error("Completion error:", err);
-      setCompletionError(err.response?.data?.error || "Could not mark lesson as complete.");
+      setCompletionError("Could not mark lesson as complete.");
+      showToast("Couldn't mark this lesson complete right now.", "danger");
     } finally {
       setCompletionLoading(false);
     }

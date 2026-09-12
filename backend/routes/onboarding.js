@@ -1,14 +1,10 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const onboardingController = require('../controllers/onboardingController');
 
 const router = express.Router();
 
-router.get('/', auth, (req, res) => {
-  res.status(501).json({
-    error: 'Not implemented',
-    resource: 'onboarding',
-    message: 'Onboarding API will be available in a future release.',
-  });
-});
+router.get('/', auth, onboardingController.getOnboarding);
+router.post('/', auth, onboardingController.completeOnboarding);
 
 module.exports = router;

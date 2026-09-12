@@ -37,6 +37,7 @@ const lessonSchema = new mongoose.Schema(
     // and compatibility with existing recommendation and activity systems.
     topic: { type: String, trim: true, default: '' },
     hasQuiz: { type: Boolean, default: false },
+    hasCodeExercise: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: true },
   },
   { timestamps: true }

@@ -6,11 +6,13 @@ import Link from "next/link";
 
 import DashboardShell from "../../../../../../components/DashboardShell";
 import { fetchQuiz, fetchQuizResults, submitQuiz } from "../../../../../../services/quizService";
+import { useToast } from "../../../../../../components/ToastProvider";
 
 function QuizPage() {
   const params = useParams();
   const lessonSlug = params?.lessonSlug;
   const pathSlug = params?.pathSlug;
+  const { showToast } = useToast();
 
   const [quiz, setQuiz] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -50,6 +52,7 @@ function QuizPage() {
           } else {
             setError("Unable to load quiz.");
           }
+          showToast("Couldn't load this quiz right now. Please try again.", "danger");
         }
       } finally {
         if (active) {
@@ -86,7 +89,8 @@ function QuizPage() {
       const data = await submitQuiz(lessonSlug, answers);
       setResult(data);
     } catch (err) {
-      setError(err.response?.data?.error || "Could not submit quiz.");
+      setError("Could not submit quiz.");
+      showToast("Couldn't submit this quiz right now. Please try again.", "danger");
     } finally {
       setSubmitting(false);
     }

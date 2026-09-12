@@ -83,7 +83,7 @@ export default function Dashboard() {
           const p = await fetchPersonalization();
           if (p) setPersonalization(p);
         } catch (e) {
-          // ignore personalization errors to keep dashboard resilient
+          showToast("Personalization is unavailable right now.", "warning");
         }
       })();
 
@@ -96,7 +96,8 @@ export default function Dashboard() {
       setStatus("Your dashboard is up to date.");
     } catch (error) {
       setUser(getStoredUser());
-      setStatus(error.response?.data?.error || "Could not load the dashboard.");
+      setStatus("Could not load the dashboard.");
+      showToast("Couldn't load your dashboard right now. Please try again.", "danger");
     }
   };
 
@@ -135,7 +136,7 @@ export default function Dashboard() {
       }));
       await loadDashboard();
     } catch (error) {
-      showToast(error.response?.data?.error || "Could not save the study activity.", "danger");
+      showToast("Could not save the study activity right now.", "danger");
     } finally {
       setSaving(false);
     }

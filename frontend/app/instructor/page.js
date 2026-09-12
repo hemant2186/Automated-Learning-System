@@ -20,7 +20,8 @@ export default function InstructorPage() {
       setAnalytics(response.data);
       setStatus("Instructor analytics synced.");
     } catch (error) {
-      setStatus(error.response?.data?.error || "Could not load instructor analytics.");
+      setStatus("Could not load instructor analytics.");
+      showToast("Couldn't load instructor analytics right now. Please try again.", "danger");
     }
   };
 

@@ -85,6 +85,24 @@ export const getLeaderboard = () =>
 export const logActivity = (payload) =>
   API.post("/api/activity/ingest", payload);
 
+export const getLessonsForPath = (pathSlug) =>
+  API.get(`/api/lessons/path/${pathSlug}`);
+
+export const getLesson = (pathSlug, lessonSlug) =>
+  API.get(`/api/lessons/${pathSlug}/${lessonSlug}`);
+
+export const getQuiz = (lessonId) =>
+  API.get(`/api/quizzes/lesson/${lessonId}`);
+
+export const submitQuiz = (quizId, payload) =>
+  API.post(`/api/quizzes/${quizId}/submit`, payload);
+
+export const getExercise = (lessonId) =>
+  API.get(`/api/code-exercises/lesson/${lessonId}`);
+
+export const submitExercise = (exerciseId, payload) =>
+  API.post(`/api/code-exercises/${exerciseId}/submit`, payload);
+
 export const getInstructorAnalytics = () =>
   API.get("/api/instructor/analytics");
 

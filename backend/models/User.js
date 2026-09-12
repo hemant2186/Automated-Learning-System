@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   skillLevel: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' },
   goals: [String],
   preferences: { type: Object },
+  onboardingCompleted: { type: Boolean, default: false },
   points: { type: Number, default: 0 },
   badges: [String],
   streak: { type: Number, default: 0 },
