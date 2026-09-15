@@ -1,5 +1,19 @@
 const mongoose = require('mongoose');
 
+const careerResourceSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 180 },
+    url: { type: String, required: true, trim: true },
+    provider: { type: String, required: true, trim: true, maxlength: 80 },
+    type: { type: String, enum: ['course', 'video', 'playlist', 'documentation', 'practice', 'sheet', 'project'], default: 'course' },
+    free: { type: Boolean, default: true },
+    preferred: { type: Boolean, default: false },
+    estimatedHours: { type: Number, min: 0, max: 500, default: 0 },
+    whyRecommended: { type: String, trim: true, maxlength: 500, default: '' }
+  },
+  { _id: false }
+);
+
 const careerSkillSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, trim: true, lowercase: true },
@@ -8,7 +22,8 @@ const careerSkillSchema = new mongoose.Schema(
     order: { type: Number, min: 1, required: true },
     importance: { type: String, enum: ['core', 'supporting', 'bonus'], default: 'core' },
     prerequisites: [{ type: String, trim: true, lowercase: true }],
-    masteryTarget: { type: Number, min: 0, max: 100, default: 75 }
+    masteryTarget: { type: Number, min: 0, max: 100, default: 75 },
+    resources: { type: [careerResourceSchema], default: [] }
   },
   { _id: false }
 );
