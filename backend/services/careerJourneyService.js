@@ -2,7 +2,7 @@ const CareerPlan = require('../models/CareerPlan');
 const CareerSkillJourney = require('../models/CareerSkillJourney');
 
 const STAGES = ['learn', 'practice', 'prove'];
-const STAGE_MASTERY = { learn: 25, practice: 60 };
+const STAGE_MASTERY = { learn: 25 };
 
 function seedSkills(plan) {
   return (plan.skills || []).map((skill) => ({
@@ -26,40 +26,34 @@ async function getJourney(userId) {
 
 async function updateStage(userId, skillKey, stage) {
   if (!STAGES.includes(stage)) throw Object.assign(new Error('Invalid journey stage.'), { statusCode: 400 });
+  if (stage === 'practice') {
+    throw Object.assign(new Error('Practice is completed automatically from qualifying quiz or coding evidence.'), { statusCode: 409 });
+  }
+  if (stage === 'prove') {
+    throw Object.assign(new Error('Submit project proof to complete the Prove stage.'), { statusCode: 409 });
+  }
+
   const data = await getJourney(userId);
   if (!data) throw Object.assign(new Error('Create a career plan first.'), { statusCode: 404 });
 
-  const index = STAGES.indexOf(stage);
   const journeySkill = data.journey.skills.find((item) => item.skillKey === skillKey);
   const planSkill = data.plan.skills.find((item) => item.skillKey === skillKey);
   if (!journeySkill || !planSkill) throw Object.assign(new Error('Skill not found in career plan.'), { statusCode: 404 });
-  if (index > 0 && journeySkill[STAGES[index - 1]].status !== 'complete') {
-    throw Object.assign(new Error(`Complete ${STAGES[index - 1]} before ${stage}.`), { statusCode: 409 });
-  }
 
-  const currentLevel = index === STAGES.length - 1
-    ? planSkill.targetLevel
-    : Math.max(planSkill.currentLevel || 0, STAGE_MASTERY[stage]);
-
-  const sets = {
-    [`skills.$.${stage}`]: { status: 'complete', completedAt: new Date() },
-    updatedAt: new Date(),
-  };
-  if (index < STAGES.length - 1) sets[`skills.$.${STAGES[index + 1]}.status`] = 'available';
-
+  const currentLevel = Math.max(planSkill.currentLevel || 0, STAGE_MASTERY.learn);
   const [journey] = await Promise.all([
     CareerSkillJourney.findOneAndUpdate(
       { userId, 'skills.skillKey': skillKey },
-      { $set: sets },
+      { $set: { 'skills.$.learn': { status: 'complete', completedAt: new Date() }, 'skills.$.practice.status': 'available', updatedAt: new Date() } },
       { new: true }
     ).lean(),
     CareerPlan.updateOne(
       { userId, 'skills.skillKey': skillKey },
-      { $set: { 'skills.$.currentLevel': currentLevel, 'skills.$.status': index === STAGES.length - 1 ? 'complete' : 'in-progress', generatedAt: new Date() } }
+      { $set: { 'skills.$.currentLevel': currentLevel, 'skills.$.status': 'in-progress', generatedAt: new Date() } }
     ),
   ]);
 
-  return { journey, updatedSkill: { skillKey, currentLevel, status: index === STAGES.length - 1 ? 'complete' : 'in-progress' } };
+  return { journey, updatedSkill: { skillKey, currentLevel, status: 'in-progress' } };
 }
 
 module.exports = { getJourney, updateStage };
