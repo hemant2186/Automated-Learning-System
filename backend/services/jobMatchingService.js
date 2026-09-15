@@ -42,7 +42,7 @@ async function analyzeJob(userId, input) {
     extractedSkills.push({ skillKey: skill.key, title: skill.title, importance, matchedBy });
     matchedSkills.push(skill.key);
     if (status === 'skill-gap') missingSkills.push(skill.key);
-    if (status !== 'ready') evidenceGaps.push(skill.key);
+    if (status === 'evidence-gap') evidenceGaps.push(skill.key);
     assessments.push({ skillKey: skill.key, title: skill.title, currentLevel, targetLevel, masteryPercent, practiceComplete, proven, status });
   });
 
@@ -55,7 +55,7 @@ async function analyzeJob(userId, input) {
 
   const nextActions = [];
   assessments.filter((i) => i.status === 'skill-gap').sort((a, b) => a.masteryPercent - b.masteryPercent).slice(0, 3).forEach((i) => nextActions.push(`Build ${i.title} through Learn + qualifying practice.`));
-  assessments.filter((i) => i.status === 'evidence-gap' && !i.proven).slice(0, 3).forEach((i) => nextActions.push(`Add project proof for ${i.title}.`));
+  assessments.filter((i) => i.status === 'evidence-gap').slice(0, 3).forEach((i) => nextActions.push(`Add project proof for ${i.title}.`));
   if (!nextActions.length && extractedSkills.length) nextActions.push('Your mapped skills are covered. Tailor your resume and portfolio to this role.');
   if (!extractedSkills.length) nextActions.push('No Career Graph skills were confidently detected. Add a clearer job description.');
 
