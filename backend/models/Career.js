@@ -22,6 +22,7 @@ const careerSkillSchema = new mongoose.Schema(
     order: { type: Number, min: 1, required: true },
     importance: { type: String, enum: ['core', 'supporting', 'bonus'], default: 'core' },
     prerequisites: [{ type: String, trim: true, lowercase: true }],
+    topicKeywords: [{ type: String, trim: true, lowercase: true }],
     masteryTarget: { type: Number, min: 0, max: 100, default: 75 },
     resources: { type: [careerResourceSchema], default: [] }
   },
