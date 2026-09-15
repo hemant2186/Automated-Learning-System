@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { completeCareerStage, getCareerJourney } from "../../lib/api";
+import { completeCareerStage, getCareerJourney, submitCareerProof } from "../../lib/api";
 import API from "../../lib/api";
 
 const STAGES = [
@@ -17,6 +17,7 @@ export default function CareerJourneyPage() {
   const [resources, setResources] = useState([]);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [proof, setProof] = useState({ skillKey: "", title: "", summary: "", repositoryUrl: "", demoUrl: "" });
 
   const load = async () => {
     try {
@@ -37,17 +38,13 @@ export default function CareerJourneyPage() {
     }
   };
 
-  useEffect(() => {
-    load().catch(() => {});
-  }, []);
+  useEffect(() => { load().catch(() => {}); }, []);
 
-  const resourceBySkill = useMemo(() => {
-    return resources.reduce((map, item) => {
-      if (!map[item.skillKey]) map[item.skillKey] = [];
-      map[item.skillKey].push(item);
-      return map;
-    }, {});
-  }, [resources]);
+  const resourceBySkill = useMemo(() => resources.reduce((map, item) => {
+    if (!map[item.skillKey]) map[item.skillKey] = [];
+    map[item.skillKey].push(item);
+    return map;
+  }, {}), [resources]);
 
   const markComplete = async (skillKey, stage) => {
     setBusy(`${skillKey}:${stage}`);
@@ -57,6 +54,21 @@ export default function CareerJourneyPage() {
       await load();
     } catch (err) {
       setError(err.response?.data?.error || "Could not update this stage.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const submitProof = async (event, skillKey) => {
+    event.preventDefault();
+    setBusy(`proof:${skillKey}`);
+    setError("");
+    try {
+      await submitCareerProof({ ...proof, skillKey });
+      setProof({ skillKey: "", title: "", summary: "", repositoryUrl: "", demoUrl: "" });
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.error || "Could not submit proof.");
     } finally {
       setBusy("");
     }
@@ -86,7 +98,7 @@ export default function CareerJourneyPage() {
                   <div>
                     <div className="small text-muted">Skill {index + 1}</div>
                     <h2 className="h4 fw-bold mb-1 text-capitalize">{skill.skillKey.replaceAll("-", " ")}</h2>
-                    <div className="small muted-copy">Target mastery: {planSkill?.targetLevel || 75}%</div>
+                    <div className="small muted-copy">Current mastery: {planSkill?.currentLevel || 0}% · Target: {planSkill?.targetLevel || 75}%</div>
                   </div>
                   <span className="badge text-bg-primary">{planSkill?.status || "next"}</span>
                 </div>
@@ -105,8 +117,8 @@ export default function CareerJourneyPage() {
                           </div>
                           <div className="small muted-copy mb-3">
                             {stage.key === "learn" && "Use the curated resource and existing lessons to understand the skill."}
-                            {stage.key === "practice" && "Solve exercises, notebooks, quizzes, or guided tasks until the concept feels usable."}
-                            {stage.key === "prove" && "Demonstrate the skill with an assessment or portfolio-grade project."}
+                            {stage.key === "practice" && "Use quizzes or coding exercises. Qualifying results now feed career mastery automatically."}
+                            {stage.key === "prove" && "Submit a real project, repository, or demo as evidence of the skill."}
                           </div>
                           {stage.key === "learn" && skillResources.length ? (
                             <div className="d-grid gap-2 mb-3">
@@ -118,7 +130,17 @@ export default function CareerJourneyPage() {
                               ))}
                             </div>
                           ) : null}
-                          {current.status !== "complete" ? (
+                          {stage.key === "prove" && current.status !== "complete" && skill.practice.status === "complete" ? (
+                            <form onSubmit={(event) => submitProof(event, skill.skillKey)} className="d-grid gap-2">
+                              <input className="form-control form-control-sm" placeholder="Project title" value={proof.skillKey === skill.skillKey ? proof.title : ""} onChange={(event) => setProof({ ...proof, skillKey: skill.skillKey, title: event.target.value })} />
+                              <textarea className="form-control form-control-sm" rows="3" placeholder="What did you build and what skill does it demonstrate?" value={proof.skillKey === skill.skillKey ? proof.summary : ""} onChange={(event) => setProof({ ...proof, skillKey: skill.skillKey, summary: event.target.value })} />
+                              <input className="form-control form-control-sm" placeholder="GitHub repository URL" value={proof.skillKey === skill.skillKey ? proof.repositoryUrl : ""} onChange={(event) => setProof({ ...proof, skillKey: skill.skillKey, repositoryUrl: event.target.value })} />
+                              <input className="form-control form-control-sm" placeholder="Live demo URL (optional)" value={proof.skillKey === skill.skillKey ? proof.demoUrl : ""} onChange={(event) => setProof({ ...proof, skillKey: skill.skillKey, demoUrl: event.target.value })} />
+                              <button type="submit" className="btn btn-primary btn-sm" disabled={busy === `proof:${skill.skillKey}` || !proof.title || !proof.summary}>
+                                {busy === `proof:${skill.skillKey}` ? "Submitting…" : "Submit proof"}
+                              </button>
+                            </form>
+                          ) : stage.key !== "prove" && current.status !== "complete" ? (
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
@@ -127,8 +149,10 @@ export default function CareerJourneyPage() {
                             >
                               {busy === `${skill.skillKey}:${stage.key}` ? "Saving…" : `Complete ${stage.label}`}
                             </button>
-                          ) : (
+                          ) : current.status === "complete" ? (
                             <div className="small text-success fw-semibold">✓ Completed</div>
+                          ) : (
+                            <div className="small text-muted">Complete Practice first.</div>
                           )}
                         </div>
                       </div>
