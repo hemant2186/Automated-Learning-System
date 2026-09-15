@@ -13,7 +13,7 @@ function seedSkills(plan) {
 }
 
 async function getJourney(userId) {
-  const plan = await CareerPlan.findOne({ userId }).lean();
+  const plan = await CareerPlan.findOne({ userId }).populate('careerId', 'title slug description targetRoles').lean();
   if (!plan) return null;
   let journey = await CareerSkillJourney.findOne({ userId }).lean();
   if (!journey) {
