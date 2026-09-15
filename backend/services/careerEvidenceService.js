@@ -3,6 +3,15 @@ const CareerSkillJourney = require('../models/CareerSkillJourney');
 
 const normalize = (value) => String(value || '').trim().toLowerCase();
 
+function journeySkills(plan) {
+  return (plan.skills || []).map((skill) => ({
+    skillKey: skill.skillKey,
+    learn: { status: skill.status === 'locked' ? 'locked' : 'available' },
+    practice: { status: 'locked' },
+    prove: { status: 'locked' },
+  }));
+}
+
 async function recordPracticeEvidence({ userId, topic, score }) {
   const plan = await CareerPlan.findOne({ userId }).populate('careerId').lean();
   if (!plan?.careerId) return null;
@@ -24,17 +33,20 @@ async function recordPracticeEvidence({ userId, topic, score }) {
     { $set: { 'skills.$.currentLevel': currentLevel, 'skills.$.status': 'in-progress', generatedAt: new Date() } }
   );
 
-  const journey = await CareerSkillJourney.findOne({ userId, 'skills.skillKey': skill.key }).lean();
+  let journey = await CareerSkillJourney.findOne({ userId }).lean();
+  if (!journey) {
+    journey = await CareerSkillJourney.create({ userId, careerPlanId: plan._id, skills: journeySkills(plan) });
+    journey = journey.toObject();
+  }
+
+  const journeySkill = journey.skills.find((item) => item.skillKey === skill.key);
   let practiceCompleted = false;
-  if (journey) {
-    const journeySkill = journey.skills.find((item) => item.skillKey === skill.key);
-    if (journeySkill?.learn?.status === 'complete') {
-      await CareerSkillJourney.updateOne(
-        { userId, 'skills.skillKey': skill.key },
-        { $set: { 'skills.$.practice.status': 'complete', 'skills.$.practice.completedAt': new Date(), 'skills.$.prove.status': 'available', updatedAt: new Date() } }
-      );
-      practiceCompleted = true;
-    }
+  if (journeySkill?.learn?.status === 'complete') {
+    await CareerSkillJourney.updateOne(
+      { userId, 'skills.skillKey': skill.key },
+      { $set: { 'skills.$.practice.status': 'complete', 'skills.$.practice.completedAt': new Date(), 'skills.$.prove.status': 'available', updatedAt: new Date() } }
+    );
+    practiceCompleted = true;
   }
 
   return { matchedSkill: skill.key, score: normalizedScore, practiceCompleted, currentLevel };
