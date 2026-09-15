@@ -14,27 +14,41 @@ const STATUS_LABELS = {
 export default function CareerDashboardPage() {
   const router = useRouter();
   const [plan, setPlan] = useState(null);
+  const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    API.get("/api/careers/me/plan")
-      .then((response) => {
-        const data = response.data;
+    async function load() {
+      try {
+        const planResponse = await API.get("/api/careers/me/plan");
+        const data = planResponse.data;
         if (!data?.careerId) {
           router.push("/career-onboarding");
           return;
         }
         setPlan(data);
-      })
-      .catch(() => setError("Could not load your career plan."))
-      .finally(() => setLoading(false));
+        const resourceResponse = await API.get(`/api/resources/career/${data.careerId.slug}`);
+        setResources(resourceResponse.data || []);
+      } catch (requestError) {
+        setError("Could not load your career plan.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, [router]);
 
   const progress = useMemo(() => {
     if (!plan?.skills?.length) return 0;
     return Math.round(plan.skills.reduce((sum, skill) => sum + Math.min(skill.currentLevel || 0, skill.targetLevel || 100), 0) / plan.skills.length);
   }, [plan]);
+
+  const resourcesBySkill = useMemo(() => resources.reduce((groups, resource) => {
+    if (!groups[resource.skillKey]) groups[resource.skillKey] = [];
+    groups[resource.skillKey].push(resource);
+    return groups;
+  }, {}), [resources]);
 
   if (loading) return <main className="container py-5"><div className="section-card p-5">Loading your career roadmap…</div></main>;
 
@@ -73,7 +87,7 @@ export default function CareerDashboardPage() {
             <div>
               <div className="eyebrow text-primary mb-2">Personalized roadmap</div>
               <h2 className="fw-bold mb-1">Your skills, in the order they matter</h2>
-              <p className="muted-copy mb-0">Locked skills open as their prerequisites become ready.</p>
+              <p className="muted-copy mb-0">Each skill gets a focused set of free resources. Use the top recommendation first unless you already know the material.</p>
             </div>
             <button type="button" className="btn btn-outline-dark" onClick={() => router.push("/career-onboarding")}>Rebuild plan</button>
           </div>
@@ -82,7 +96,7 @@ export default function CareerDashboardPage() {
             {plan.skills.map((skill, index) => {
               const percentage = Math.min(100, Math.round((skill.currentLevel / Math.max(skill.targetLevel, 1)) * 100));
               const careerSkill = plan.careerId.skills?.find((item) => item.key === skill.skillKey);
-              const resources = careerSkill?.resources || [];
+              const skillResources = resourcesBySkill[skill.skillKey] || [];
               return (
                 <div className="metric-tile p-4" key={skill.skillKey}>
                   <div className="d-flex justify-content-between align-items-start gap-3">
@@ -101,24 +115,24 @@ export default function CareerDashboardPage() {
                     <div className="progress" style={{ height: 8 }}><div className="progress-bar" style={{ width: `${percentage}%` }} /></div>
                   </div>
 
-                  {resources.length > 0 ? (
+                  {skillResources.length > 0 ? (
                     <div className="mt-4">
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">Recommended free resources</div>
-                        <span className="small muted-copy">{resources.length} resource{resources.length === 1 ? "" : "s"}</span>
+                        <div className="fw-semibold">Best free resources</div>
+                        <span className="small muted-copy">{skillResources.length} curated</span>
                       </div>
                       <div className="row g-2">
-                        {resources.map((resource) => (
-                          <div className="col-lg-6" key={`${skill.skillKey}-${resource.url}`}>
+                        {skillResources.map((resource) => (
+                          <div className="col-lg-6" key={`${skill.skillKey}-${resource.rank}-${resource.url}`}>
                             <a className="d-block text-decoration-none h-100" href={resource.url} target="_blank" rel="noreferrer">
                               <div className="border rounded-4 p-3 h-100 bg-white">
                                 <div className="d-flex justify-content-between gap-2">
                                   <div className="fw-semibold text-dark">{resource.title}</div>
-                                  {resource.preferred ? <span className="badge text-bg-success">Recommended</span> : null}
+                                  {resource.rank === 1 ? <span className="badge text-bg-success">Top pick</span> : null}
                                 </div>
                                 <div className="small text-muted mt-1">{resource.provider} • {resource.type} • Free</div>
                                 {resource.estimatedHours ? <div className="small text-muted mt-1">~{resource.estimatedHours} hours</div> : null}
-                                <div className="small text-dark mt-2">{resource.whyRecommended}</div>
+                                <div className="small text-dark mt-2">{resource.reason}</div>
                                 <div className="small fw-semibold text-primary mt-2">Open resource ↗</div>
                               </div>
                             </a>
@@ -126,7 +140,9 @@ export default function CareerDashboardPage() {
                         ))}
                       </div>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="small muted-copy mt-4">Resource curation for this skill is coming next.</div>
+                  )}
                 </div>
               );
             })}
@@ -139,7 +155,7 @@ export default function CareerDashboardPage() {
               <div className="eyebrow text-primary mb-2">Career strategy</div>
               <h3 className="fw-bold mb-3">How this roadmap works</h3>
               <div className="d-grid gap-3">
-                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Start with the preferred free resource or the existing lessons mapped to this skill.</div></div>
+                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Start with the top free resource or the existing lessons mapped to this skill.</div></div>
                 <div className="metric-tile p-3"><strong>Practice</strong><div className="small muted-copy mt-1">Use quizzes, coding exercises, notebooks, sheets, and projects to turn study time into measurable signals.</div></div>
                 <div className="metric-tile p-3"><strong>Prove</strong><div className="small muted-copy mt-1">Projects and assessments will eventually raise the skill from “studied” to “demonstrated”.</div></div>
               </div>
