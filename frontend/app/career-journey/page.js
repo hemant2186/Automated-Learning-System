@@ -140,17 +140,19 @@ export default function CareerJourneyPage() {
                                 {busy === `proof:${skill.skillKey}` ? "Submitting…" : "Submit proof"}
                               </button>
                             </form>
-                          ) : stage.key !== "prove" && current.status !== "complete" ? (
+                          ) : stage.key === "learn" && current.status !== "complete" ? (
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
-                              disabled={!canAct || Boolean(busy) || (stageIndex > 0 && previous?.status !== "complete")}
+                              disabled={!canAct || Boolean(busy) || Boolean(previous && previous.status !== "complete")}
                               onClick={() => markComplete(skill.skillKey, stage.key)}
                             >
-                              {busy === `${skill.skillKey}:${stage.key}` ? "Saving…" : `Complete ${stage.label}`}
+                              {busy === `${skill.skillKey}:${stage.key}` ? "Saving…" : "Complete Learn"}
                             </button>
                           ) : current.status === "complete" ? (
                             <div className="small text-success fw-semibold">✓ Completed</div>
+                          ) : stage.key === "practice" ? (
+                            <div className="small text-muted">Complete a qualifying quiz or coding exercise to unlock Prove.</div>
                           ) : (
                             <div className="small text-muted">Complete Practice first.</div>
                           )}
