@@ -57,5 +57,6 @@ export const getInstructorExportUrl = () => `${API_BASE_URL}/api/instructor/anal
 export const getCareerJourney = () => API.get("/api/careers/me/journey");
 export const completeCareerStage = (skillKey, stage) => API.post(`/api/careers/me/journey/${skillKey}/${stage}/complete`);
 export const submitCareerProof = (payload) => API.post("/api/careers/me/proof", payload);
+export const getCareerReadiness = () => API.get("/api/careers/me/readiness");
 
 export default API;
