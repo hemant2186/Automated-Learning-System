@@ -61,5 +61,8 @@ export const getCareerReadiness = () => API.get("/api/careers/me/readiness");
 export const getCareerPortfolio = () => API.get("/api/careers/portfolio");
 export const saveCareerProfile = (payload) => API.put("/api/careers/portfolio/profile", payload);
 export const getCareerResume = () => API.get("/api/careers/portfolio/resume");
+export const analyzeCareerJob = (payload) => API.post("/api/careers/me/jobs/analyze", payload);
+export const getCareerJobs = () => API.get("/api/careers/me/jobs");
+export const getCareerJob = (id) => API.get(`/api/careers/me/jobs/${id}`);
 
 export default API;
