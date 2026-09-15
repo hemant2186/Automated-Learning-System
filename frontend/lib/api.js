@@ -5,9 +5,7 @@ import axios from "axios";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
-const API = axios.create({
-  baseURL: API_BASE_URL,
-});
+const API = axios.create({ baseURL: API_BASE_URL });
 
 API.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
@@ -58,5 +56,6 @@ export const getInstructorAnalytics = () => API.get("/api/instructor/analytics")
 export const getInstructorExportUrl = () => `${API_BASE_URL}/api/instructor/analytics/export.csv`;
 export const getCareerJourney = () => API.get("/api/careers/me/journey");
 export const completeCareerStage = (skillKey, stage) => API.post(`/api/careers/me/journey/${skillKey}/${stage}/complete`);
+export const submitCareerProof = (payload) => API.post("/api/careers/me/proof", payload);
 
 export default API;
