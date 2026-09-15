@@ -81,22 +81,52 @@ export default function CareerDashboardPage() {
           <div className="d-grid gap-3">
             {plan.skills.map((skill, index) => {
               const percentage = Math.min(100, Math.round((skill.currentLevel / Math.max(skill.targetLevel, 1)) * 100));
+              const careerSkill = plan.careerId.skills?.find((item) => item.key === skill.skillKey);
+              const resources = careerSkill?.resources || [];
               return (
                 <div className="metric-tile p-4" key={skill.skillKey}>
                   <div className="d-flex justify-content-between align-items-start gap-3">
                     <div className="d-flex gap-3">
                       <div className="rounded-circle border d-flex align-items-center justify-content-center fw-bold" style={{ width: 42, height: 42 }}>{index + 1}</div>
                       <div>
-                        <div className="fw-bold fs-5 text-capitalize">{skill.skillKey.replaceAll("-", " ")}</div>
+                        <div className="fw-bold fs-5 text-capitalize">{careerSkill?.title || skill.skillKey.replaceAll("-", " ")}</div>
                         <div className="small muted-copy mt-1">Target mastery: {skill.targetLevel}%</div>
                       </div>
                     </div>
                     <span className={`badge ${skill.status === "complete" ? "text-bg-success" : skill.status === "locked" ? "text-bg-secondary" : "text-bg-primary"}`}>{STATUS_LABELS[skill.status] || skill.status}</span>
                   </div>
+
                   <div className="mt-3">
                     <div className="d-flex justify-content-between small mb-1"><span>{skill.currentLevel}% current</span><span>{percentage}% of target</span></div>
                     <div className="progress" style={{ height: 8 }}><div className="progress-bar" style={{ width: `${percentage}%` }} /></div>
                   </div>
+
+                  {resources.length > 0 ? (
+                    <div className="mt-4">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div className="fw-semibold">Recommended free resources</div>
+                        <span className="small muted-copy">{resources.length} resource{resources.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <div className="row g-2">
+                        {resources.map((resource) => (
+                          <div className="col-lg-6" key={`${skill.skillKey}-${resource.url}`}>
+                            <a className="d-block text-decoration-none h-100" href={resource.url} target="_blank" rel="noreferrer">
+                              <div className="border rounded-4 p-3 h-100 bg-white">
+                                <div className="d-flex justify-content-between gap-2">
+                                  <div className="fw-semibold text-dark">{resource.title}</div>
+                                  {resource.preferred ? <span className="badge text-bg-success">Recommended</span> : null}
+                                </div>
+                                <div className="small text-muted mt-1">{resource.provider} • {resource.type} • Free</div>
+                                {resource.estimatedHours ? <div className="small text-muted mt-1">~{resource.estimatedHours} hours</div> : null}
+                                <div className="small text-dark mt-2">{resource.whyRecommended}</div>
+                                <div className="small fw-semibold text-primary mt-2">Open resource ↗</div>
+                              </div>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -109,8 +139,8 @@ export default function CareerDashboardPage() {
               <div className="eyebrow text-primary mb-2">Career strategy</div>
               <h3 className="fw-bold mb-3">How this roadmap works</h3>
               <div className="d-grid gap-3">
-                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Use the existing lessons and curated resources attached to each learning path.</div></div>
-                <div className="metric-tile p-3"><strong>Practice</strong><div className="small muted-copy mt-1">Use quizzes and coding exercises to turn study time into measurable signals.</div></div>
+                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Start with the preferred free resource or the existing lessons mapped to this skill.</div></div>
+                <div className="metric-tile p-3"><strong>Practice</strong><div className="small muted-copy mt-1">Use quizzes, coding exercises, notebooks, sheets, and projects to turn study time into measurable signals.</div></div>
                 <div className="metric-tile p-3"><strong>Prove</strong><div className="small muted-copy mt-1">Projects and assessments will eventually raise the skill from “studied” to “demonstrated”.</div></div>
               </div>
             </div>
