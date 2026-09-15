@@ -27,9 +27,11 @@ export default function CareerJourneyPage() {
         return;
       }
       setData(result);
-      const slug = result.plan.careerSlug;
-      const resourceResponse = await API.get(`/api/careers/${slug}/resources`);
-      setResources(resourceResponse.data || []);
+      const slug = result.plan.careerId?.slug;
+      if (slug) {
+        const resourceResponse = await API.get(`/api/careers/${slug}/resources`);
+        setResources(resourceResponse.data || []);
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Could not load your learning journey.");
     }
@@ -68,7 +70,7 @@ export default function CareerJourneyPage() {
       <div className="container py-4 py-lg-5">
         <div className="hero-panel p-4 p-lg-5 mb-4">
           <div className="eyebrow mb-2">Skill execution plan</div>
-          <h1 className="display-6 fw-bold mb-2">{data.plan.targetRole || data.plan.careerSlug}</h1>
+          <h1 className="display-6 fw-bold mb-2">{data.plan.targetRole || data.plan.careerId?.title || "Career path"}</h1>
           <p className="text-white-50 mb-0">For every skill, complete the loop: Learn → Practice → Prove.</p>
         </div>
 
