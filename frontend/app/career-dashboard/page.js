@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import API from "../../lib/api";
+import API, { getCareerReadiness } from "../../lib/api";
 
 const STATUS_LABELS = {
   complete: "Complete",
@@ -14,6 +14,7 @@ const STATUS_LABELS = {
 export default function CareerDashboardPage() {
   const router = useRouter();
   const [plan, setPlan] = useState(null);
+  const [readiness, setReadiness] = useState(null);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,10 +29,14 @@ export default function CareerDashboardPage() {
           return;
         }
         setPlan(data);
-        const resourceResponse = await API.get(`/api/resources/career/${data.careerId.slug}`);
+        const [resourceResponse, readinessResponse] = await Promise.all([
+          API.get(`/api/resources/career/${data.careerId.slug}`),
+          getCareerReadiness(),
+        ]);
         setResources(resourceResponse.data || []);
+        setReadiness(readinessResponse.data || null);
       } catch (requestError) {
-        setError("Could not load your career plan.");
+        setError(requestError.response?.data?.error || "Could not load your career plan.");
       } finally {
         setLoading(false);
       }
@@ -51,7 +56,6 @@ export default function CareerDashboardPage() {
   }, {}), [resources]);
 
   if (loading) return <main className="container py-5"><div className="section-card p-5">Loading your career roadmap…</div></main>;
-
   if (error) return <main className="container py-5"><div className="alert alert-danger">{error}</div></main>;
 
   return (
@@ -71,23 +75,46 @@ export default function CareerDashboardPage() {
             </div>
             <div className="col-lg-4">
               <div className="glass-card rounded-4 p-4">
-                <div className="small text-white-50">Career readiness journey</div>
-                <div className="display-5 fw-bold mt-1">{progress}%</div>
+                <div className="small text-white-50">Job readiness</div>
+                <div className="display-5 fw-bold mt-1">{readiness?.score ?? progress}%</div>
+                <div className="fw-semibold mt-2">{readiness?.label || "Building readiness"}</div>
                 <div className="progress mt-3" style={{ height: 8 }}>
-                  <div className="progress-bar" style={{ width: `${progress}%` }} />
+                  <div className="progress-bar" style={{ width: `${readiness?.score ?? progress}%` }} />
                 </div>
-                <div className="small text-white-50 mt-2">Based on your current skill levels and targets.</div>
+                <div className="small text-white-50 mt-2">Skill mastery + Practice evidence + Prove evidence.</div>
               </div>
             </div>
           </div>
         </div>
+
+        {readiness ? (
+          <div className="row g-4 mb-4">
+            <div className="col-md-4"><div className="section-card p-4 h-100"><div className="small text-muted">Core skill proof</div><div className="display-6 fw-bold mt-1">{readiness.provenCoreSkillCount}/{readiness.coreSkillCount}</div><div className="small muted-copy mt-1">Core skills with portfolio evidence.</div></div></div>
+            <div className="col-md-4"><div className="section-card p-4 h-100"><div className="small text-muted">Practice coverage</div><div className="display-6 fw-bold mt-1">{readiness.practiceCoverage}%</div><div className="small muted-copy mt-1">Skills backed by qualifying practice.</div></div></div>
+            <div className="col-md-4"><div className="section-card p-4 h-100"><div className="small text-muted">Portfolio score</div><div className="display-6 fw-bold mt-1">{readiness.portfolioScore}%</div><div className="small muted-copy mt-1">Coverage across core career skills.</div></div></div>
+          </div>
+        ) : null}
+
+        {readiness?.nextActions?.length ? (
+          <div className="section-card p-4 p-lg-5 mb-4">
+            <div className="eyebrow text-primary mb-2">What to do next</div>
+            <h2 className="fw-bold mb-3">Your highest-impact moves</h2>
+            <div className="row g-3">
+              {readiness.nextActions.map((action, index) => (
+                <div className="col-lg-4" key={action.skillKey}>
+                  <div className="metric-tile p-3 h-100"><div className="small text-muted">#{index + 1}</div><div className="fw-bold mt-1">{action.title}</div><div className="small muted-copy mt-2">{action.action}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="section-card p-4 p-lg-5 mb-4">
           <div className="d-flex justify-content-between align-items-end gap-3 mb-4">
             <div>
               <div className="eyebrow text-primary mb-2">Personalized roadmap</div>
               <h2 className="fw-bold mb-1">Your skills, in the order they matter</h2>
-              <p className="muted-copy mb-0">Each skill gets a focused set of free resources. Use the top recommendation first unless you already know the material.</p>
+              <p className="muted-copy mb-0">Each skill gets a focused set of free resources and measurable evidence milestones.</p>
             </div>
             <button type="button" className="btn btn-outline-dark" onClick={() => router.push("/career-onboarding")}>Rebuild plan</button>
           </div>
@@ -97,6 +124,7 @@ export default function CareerDashboardPage() {
               const percentage = Math.min(100, Math.round((skill.currentLevel / Math.max(skill.targetLevel, 1)) * 100));
               const careerSkill = plan.careerId.skills?.find((item) => item.key === skill.skillKey);
               const skillResources = resourcesBySkill[skill.skillKey] || [];
+              const readinessSkill = readiness?.skills?.find((item) => item.skillKey === skill.skillKey);
               return (
                 <div className="metric-tile p-4" key={skill.skillKey}>
                   <div className="d-flex justify-content-between align-items-start gap-3">
@@ -104,7 +132,7 @@ export default function CareerDashboardPage() {
                       <div className="rounded-circle border d-flex align-items-center justify-content-center fw-bold" style={{ width: 42, height: 42 }}>{index + 1}</div>
                       <div>
                         <div className="fw-bold fs-5 text-capitalize">{careerSkill?.title || skill.skillKey.replaceAll("-", " ")}</div>
-                        <div className="small muted-copy mt-1">Target mastery: {skill.targetLevel}%</div>
+                        <div className="small muted-copy mt-1">Target mastery: {skill.targetLevel}% · {readinessSkill?.proof ? "Proof submitted" : "Proof needed"}</div>
                       </div>
                     </div>
                     <span className={`badge ${skill.status === "complete" ? "text-bg-success" : skill.status === "locked" ? "text-bg-secondary" : "text-bg-primary"}`}>{STATUS_LABELS[skill.status] || skill.status}</span>
@@ -117,19 +145,13 @@ export default function CareerDashboardPage() {
 
                   {skillResources.length > 0 ? (
                     <div className="mt-4">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="fw-semibold">Best free resources</div>
-                        <span className="small muted-copy">{skillResources.length} curated</span>
-                      </div>
+                      <div className="d-flex justify-content-between align-items-center mb-2"><div className="fw-semibold">Best free resources</div><span className="small muted-copy">{skillResources.length} curated</span></div>
                       <div className="row g-2">
                         {skillResources.map((resource) => (
                           <div className="col-lg-6" key={`${skill.skillKey}-${resource.rank}-${resource.url}`}>
                             <a className="d-block text-decoration-none h-100" href={resource.url} target="_blank" rel="noreferrer">
                               <div className="border rounded-4 p-3 h-100 bg-white">
-                                <div className="d-flex justify-content-between gap-2">
-                                  <div className="fw-semibold text-dark">{resource.title}</div>
-                                  {resource.rank === 1 ? <span className="badge text-bg-success">Top pick</span> : null}
-                                </div>
+                                <div className="d-flex justify-content-between gap-2"><div className="fw-semibold text-dark">{resource.title}</div>{resource.rank === 1 ? <span className="badge text-bg-success">Top pick</span> : null}</div>
                                 <div className="small text-muted mt-1">{resource.provider} • {resource.type} • Free</div>
                                 {resource.estimatedHours ? <div className="small text-muted mt-1">~{resource.estimatedHours} hours</div> : null}
                                 <div className="small text-dark mt-2">{resource.reason}</div>
@@ -140,9 +162,7 @@ export default function CareerDashboardPage() {
                         ))}
                       </div>
                     </div>
-                  ) : (
-                    <div className="small muted-copy mt-4">Resource curation for this skill is coming next.</div>
-                  )}
+                  ) : <div className="small muted-copy mt-4">Resource curation for this skill is coming next.</div>}
                 </div>
               );
             })}
@@ -152,21 +172,21 @@ export default function CareerDashboardPage() {
         <div className="row g-4">
           <div className="col-lg-7">
             <div className="section-card p-4 h-100">
-              <div className="eyebrow text-primary mb-2">Career strategy</div>
-              <h3 className="fw-bold mb-3">How this roadmap works</h3>
+              <div className="eyebrow text-primary mb-2">Career execution</div>
+              <h3 className="fw-bold mb-3">Close the loop on every skill</h3>
               <div className="d-grid gap-3">
-                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Start with the top free resource or the existing lessons mapped to this skill.</div></div>
-                <div className="metric-tile p-3"><strong>Practice</strong><div className="small muted-copy mt-1">Use quizzes, coding exercises, notebooks, sheets, and projects to turn study time into measurable signals.</div></div>
-                <div className="metric-tile p-3"><strong>Prove</strong><div className="small muted-copy mt-1">Projects and assessments will eventually raise the skill from “studied” to “demonstrated”.</div></div>
+                <div className="metric-tile p-3"><strong>Learn</strong><div className="small muted-copy mt-1">Start with the top free resource or existing lessons.</div></div>
+                <div className="metric-tile p-3"><strong>Practice</strong><div className="small muted-copy mt-1">Qualifying quizzes and coding exercises now become career evidence automatically.</div></div>
+                <div className="metric-tile p-3"><strong>Prove</strong><div className="small muted-copy mt-1">Submit a real project, repository, or demo and turn the skill into portfolio evidence.</div></div>
               </div>
             </div>
           </div>
           <div className="col-lg-5">
             <div className="section-card p-4 h-100">
               <div className="eyebrow text-primary mb-2">Next move</div>
-              <h3 className="fw-bold mb-3">Continue your existing learning engine</h3>
-              <p className="muted-copy">Your career plan is the new layer. Your existing lessons, quizzes, projects, activity tracking, and recommendations remain the learning engine underneath it.</p>
-              <button type="button" className="btn btn-primary" onClick={() => router.push("/learning-paths")}>Browse learning paths</button>
+              <h3 className="fw-bold mb-3">Open your execution journey</h3>
+              <p className="muted-copy">Use the Career Journey to complete Learn, build Practice evidence, and submit Prove artifacts.</p>
+              <button type="button" className="btn btn-primary" onClick={() => router.push("/career-journey")}>Open Career Journey</button>
             </div>
           </div>
         </div>
